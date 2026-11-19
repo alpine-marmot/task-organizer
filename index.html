@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Task Organizer</title>
+<!--
+  Task Organizer
+  Version 0.2.2 (Beta) · by alpine-marmot · 2026
+  https://github.com/alpine-marmot/task-organizer · MIT-Lizenz
+
+  CHANGELOG
+  0.2.2 – 19.11.2026
+    - Veröffentlichung auf GitHub: Autor «alpine-marmot», Fusszeile mit Logo und Links zu Repository und Profil
+  0.2.1 – 18.11.2026
+    - Doppelklick auf die leere Fläche einer Spalte (Offen, Geplant, Warten) öffnet «Neue Aufgabe» mit dieser Spalte vorausgewählt
+  0.2.0 – 14.11.2026
+    - Wiederkehrende Aufgaben: täglich, wöchentlich, alle 2 Wochen, monatlich, jährlich oder eigenes Intervall
+    - Nächstes Datum pro Aufgabe «ab Erledigt» oder «nach festem Plan»; neue Karte kommt in «Geplant» und erscheint kurz vor der Fälligkeit
+    - Spalte «Geplant» zeigt kommende Wiederholungen zum Aufklappen
+    - Kunden-Ansicht: Kundenkarte mit Kontaktdaten zum Anklicken, offenen und erledigten Aufgaben, Knopf «Neue Aufgabe für …»
+    - Neues Kundenfeld «Ansprechperson» (Erfassung, Einstellungen, CSV-Import und -Export)
+    - Sortier-Menü in den Spalten etwas breiter
+  0.1.0 – 14.11.2026 – Erste Beta-Version
+    - Zwei Bereiche: Privat und Geschäftlich, je mit eigenen Aufgaben und Kategorien; Kunden im geschäftlichen Bereich
+    - Kanban mit vier Spalten: Offen, Geplant, Warten, Erledigt
+    - Aufgabe mit Priorität 1–3, Kategorie mit Farbe, Fälligkeitsdatum und Notiz; geschäftlich mit Kunde (Telefon, E-Mail)
+    - Kategorien und Kunden entstehen beim ersten Eintippen und werden danach vorgeschlagen
+    - Sortierung pro Spalte: Priorität, Erfassungsdatum, Fälligkeit, Farbe oder Manuell
+    - Drag & Drop zwischen und innerhalb der Spalten; zusätzlich Menü «Verschieben nach …» auf jeder Karte
+    - Archiv: per Knopf oder automatisch nach 14 Tagen (einstellbar), Suche, Wiederherstellen, CSV-Export
+    - Speichern direkt in eine Datei (File System Access API, Chrome/Edge), zusätzlich Zwischenspeicher im Browser, Sicherung exportieren/importieren
+    - Einstellungen mit Reitern Allgemein, Kategorien und Kunden (inkl. CSV-Import)
+    - Hilfe mit Ablauf-Diagramm und Datenschutz-Abschnitt; Hell/Dunkel, Deutsch/Englisch, Tastenkürzel
+-->
+<style>
+:root{
+  --bg:#f5f4f0;--surface:#ffffff;--surface2:#efede8;--text:#1f1e1c;--muted:#68665f;--faint:#9a978e;
+  --border:#dedbd3;--border-strong:#bfbbb0;--accent:#2f6fd0;--accent-bg:#e6f0fb;--accent-text:#1d4f9c;
+  --red:#d64545;--red-bg:#fcebeb;--red-text:#8f2424;
+  --yellow:#e09a1f;--yellow-bg:#faeeda;--yellow-text:#7a4c06;
+  --green:#5c9a24;--green-bg:#eaf3de;--green-text:#30580e;
+  --danger:#b83232;--warn-bg:#fff3d6;--warn-text:#7a4c06;
+  --radius:8px;--shadow:0 6px 24px rgba(0,0,0,.14);
+  color-scheme:light;
+}
+[data-theme="dark"]{
+  --bg:#1b1b1a;--surface:#262624;--surface2:#30302d;--text:#ecebe6;--muted:#aeaca4;--faint:#858379;
+  --border:#3d3d39;--border-strong:#55554f;--accent:#6aa3f0;--accent-bg:#1f3350;--accent-text:#b9d5fa;
+  --red:#ec6b6b;--red-bg:#4a1f1f;--red-text:#f7c1c1;
+  --yellow:#f0b24a;--yellow-bg:#47340f;--yellow-text:#fad79a;
+  --green:#8cc456;--green-bg:#263a14;--green-text:#c9e6a6;
+  --danger:#f07c7c;--warn-bg:#47340f;--warn-text:#fad79a;
+  --shadow:0 6px 24px rgba(0,0,0,.5);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-size:15px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius);padding:6px 12px;display:inline-flex;align-items:center;gap:6px}
+button:hover{background:var(--surface2)}
+button:disabled{opacity:.45;cursor:default}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+[data-theme="dark"] button.primary{color:#0e1b2e}
+button.primary:hover{filter:brightness(1.07)}
+button.danger{color:var(--danger);border-color:var(--danger)}
+button.ghost{border-color:transparent;background:transparent}
+button.ghost:hover{background:var(--surface2)}
+button.icon{padding:6px 8px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.card:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+input,select,textarea{background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius);padding:7px 10px;width:100%}
+input[type=color]{padding:2px;width:34px;height:28px;cursor:pointer}
+textarea{resize:vertical}
+label{font-size:13px;color:var(--muted);display:block;margin:10px 0 4px}
+svg.i{width:18px;height:18px;flex:none}
+.hidden{display:none!important}
+
+header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 18px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
+header h1{font-size:18px;font-weight:600;margin:0 8px 0 0;display:flex;align-items:center;gap:8px}
+.spacer{flex:1}
+.status{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface2);color:var(--muted)}
+.status.ok{background:var(--green-bg);color:var(--green-text);border-color:transparent}
+.status.warn{background:var(--warn-bg);color:var(--warn-text);border-color:transparent}
+.status.err{background:var(--red-bg);color:var(--red-text);border-color:transparent}
+
+.areabar{display:flex;gap:4px;padding:0 18px;background:var(--surface);border-bottom:1px solid var(--border);align-items:flex-end}
+.areabar button{border:none;border-bottom:3px solid transparent;border-radius:0;background:transparent;padding:10px 16px 8px;color:var(--muted);font-weight:500}
+.areabar button:hover{background:var(--surface2)}
+.areabar button.on{border-bottom-color:var(--accent);color:var(--text);font-weight:600}
+.areabar .count{margin-left:2px}
+
+.toolbar{display:flex;gap:10px;align-items:center;padding:12px 18px 0;flex-wrap:wrap}
+.search{position:relative;flex:1;min-width:220px;max-width:460px}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--faint)}
+.search input{padding-left:34px}
+.toolbar select{width:auto;max-width:220px}
+
+.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:14px 18px 24px}
+@media (max-width:1150px){.board{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.board{grid-template-columns:1fr}}
+.col{background:var(--surface2);border-radius:12px;padding:10px;display:flex;flex-direction:column;min-height:340px;min-width:0}
+.col-head{display:flex;align-items:center;gap:7px;padding:2px 2px 10px;font-weight:600;font-size:14px}
+.col-dot{width:10px;height:10px;border-radius:50%;flex:none}
+.count{font-size:12px;font-weight:500;background:var(--surface);border-radius:999px;padding:1px 8px;color:var(--muted)}
+.col-head select{margin-left:auto;width:auto;font-size:12px;padding:3px 6px;font-weight:400;max-width:150px}
+.col-tools{display:flex;justify-content:flex-end;margin:-4px 0 8px}
+.col-tools button{font-size:12px;padding:3px 8px}
+.col-body{flex:1;display:flex;flex-direction:column;gap:8px;border-radius:8px;padding:2px;transition:background .15s}
+.col-body.over{background:var(--accent-bg);outline:2px dashed var(--accent)}
+.col-body.drop-end::after{content:"";display:block;height:3px;border-radius:2px;background:var(--accent)}
+.empty{font-size:13px;color:var(--faint);padding:14px 8px;text-align:center}
+
+.card{background:var(--surface);border:1px solid var(--border);border-left:5px solid var(--border-strong);border-radius:4px 8px 8px 4px;padding:8px 10px;cursor:grab;font-size:13px;position:relative}
+.card:hover{border-color:var(--border-strong)}
+.card.dragging{opacity:.45}
+.card.drop-before{box-shadow:0 -4px 0 -1px var(--accent)}
+.card-top{display:flex;gap:6px;align-items:flex-start}
+.card-title{font-size:14px;font-weight:600;flex:1;min-width:0;overflow-wrap:anywhere}
+.card.is-done .card-title{color:var(--muted)}
+.card-note{color:var(--muted);margin-top:3px;white-space:pre-wrap;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pills{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;align-items:center}
+.pill{font-size:11.5px;padding:1px 8px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill svg.i{width:12px;height:12px}
+.pill.p1{background:var(--red-bg);color:var(--red-text);border-color:transparent;font-weight:600}
+.pill.over{background:var(--red-bg);color:var(--red-text);border-color:transparent}
+.pill.today{background:var(--yellow-bg);color:var(--yellow-text);border-color:transparent}
+.pill.cust{background:var(--accent-bg);color:var(--accent-text);border-color:transparent}
+.dot{display:inline-block;width:9px;height:9px;border-radius:3px;flex:none}
+.card-actions{display:flex;gap:2px;margin:-3px -5px 0 0}
+.card-actions button{padding:3px 5px}
+.card-actions svg.i{width:15px;height:15px}
+.card-foot{display:flex;justify-content:flex-end;margin-top:6px}
+.card-foot button{padding:3px 8px;font-size:12px}
+
+.menu{position:fixed;z-index:50;background:var(--surface);border:1px solid var(--border-strong);border-radius:10px;box-shadow:var(--shadow);padding:6px;min-width:190px}
+.menu-h{font-size:12px;color:var(--muted);padding:4px 8px 6px}
+.menu button{display:flex;width:100%;border:none;background:transparent;padding:7px 8px;font-size:13px;justify-content:flex-start}
+.menu button:hover:not(:disabled){background:var(--accent-bg)}
+.menu hr{border:none;border-top:1px solid var(--border);margin:4px 0}
+
+dialog{border:none;border-radius:14px;padding:0;background:var(--surface);color:var(--text);box-shadow:var(--shadow);width:min(640px,94vw);max-height:90vh}
+dialog.wide{width:min(980px,96vw)}
+dialog::backdrop{background:rgba(0,0,0,.42)}
+.dlg-head{display:flex;align-items:center;gap:10px;padding:16px 20px 8px;position:sticky;top:0;background:var(--surface);z-index:2}
+.dlg-head h2{font-size:18px;font-weight:600;margin:0;flex:1}
+.dlg-body{padding:4px 20px 12px;overflow:auto}
+.dlg-foot{display:flex;gap:8px;align-items:center;padding:12px 20px 16px;border-top:1px solid var(--border);flex-wrap:wrap}
+.dlg-scroll{max-height:calc(90vh - 130px);overflow:auto}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1;justify-content:center;white-space:nowrap}
+.seg button.on{background:var(--accent-bg);border-color:var(--accent);color:var(--accent-text);font-weight:600}
+.seg button.on-p1{background:var(--red-bg);border-color:var(--red);color:var(--red-text);font-weight:600}
+.seg button.on-p2{background:var(--yellow-bg);border-color:var(--yellow);color:var(--yellow-text);font-weight:600}
+.seg button.on-p3{background:var(--green-bg);border-color:var(--green);color:var(--green-text);font-weight:600}
+.seg.small button{flex:none;padding:4px 12px;font-size:13px}
+.err{color:var(--danger);font-size:13px;margin-top:6px}
+.hint{font-size:12px;color:var(--faint);margin-top:4px}
+.ac-wrap{position:relative}
+.ac-wrap .cat-dot{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:3px}
+.ac-wrap input.with-dot{padding-left:31px}
+.ac{position:absolute;left:0;right:0;top:100%;margin-top:2px;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius);box-shadow:var(--shadow);z-index:10;max-height:230px;overflow:auto}
+.ac div{padding:7px 10px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.ac div:last-child{border-bottom:none}
+.ac div.sel,.ac div:hover{background:var(--accent-bg)}
+.ac small{color:var(--muted);margin-left:auto}
+.swatches{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.swatch{width:24px;height:24px;border-radius:6px;padding:0;border:2px solid transparent;display:inline-block}
+.swatch.on{border-color:var(--text);box-shadow:inset 0 0 0 2px var(--surface)}
+.due-row{display:flex;gap:6px;align-items:center}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:560px){.grid3{grid-template-columns:1fr}}
+.rep-custom{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:14px;flex-wrap:wrap}
+.rep-custom input{width:70px}.rep-custom select{width:auto}
+.rep-box{margin-top:8px}
+button.pill{cursor:pointer;font:inherit;font-size:11.5px}
+button.pill.cust:hover{text-decoration:underline}
+.pill.rep{background:var(--surface2)}
+.upcoming-toggle{margin-top:8px;font-size:12px;width:100%;justify-content:center;background:transparent;border-style:dashed;color:var(--muted)}
+.card.upcoming{opacity:.62;border-style:dashed;border-left-style:solid}
+.cust-head{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:14px;margin:2px 0 4px}
+.cust-head a{color:var(--accent);text-decoration:none;display:inline-flex;gap:5px;align-items:center}
+.cust-head a:hover{text-decoration:underline}
+.cust-sec{font-size:13px;color:var(--muted);font-weight:600;margin:14px 0 6px;display:flex;align-items:center;gap:7px}
+.mini{background:var(--surface);border:1px solid var(--border);border-left:5px solid var(--border-strong);border-radius:4px 8px 8px 4px;padding:7px 10px;margin-bottom:6px;cursor:pointer;font-size:13px}
+.mini:hover{border-color:var(--border-strong)}
+.mini b{font-weight:600}
+.cust-list td{cursor:pointer}
+.cust-list tr:hover td{background:var(--surface2)}
+.due-row input{width:180px}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;border-bottom:1px solid var(--border-strong);padding:6px}
+td{border-bottom:1px solid var(--border);padding:6px;vertical-align:middle}
+td.nowrap{white-space:nowrap}
+td .sub{font-size:12px;color:var(--muted);white-space:pre-wrap}
+.arch-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+
+.set-sec{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin:10px 0}
+.set-sec h3{margin:0 0 6px;font-size:15px;font-weight:600;display:flex;gap:6px;align-items:center}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.list-table td input{padding:4px 7px;font-size:13px}
+.list-table .swatches{margin:0;gap:4px}
+.list-table .swatch{width:18px;height:18px;border-radius:4px}
+.inline-num{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
+.inline-num input{width:80px}
+.kbd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 6px}
+.sc-list div{display:flex;justify-content:space-between;padding:3px 0;font-size:13px;border-bottom:1px solid var(--border)}
+.version{font-size:12px;color:var(--faint)}
+.app-footer{text-align:center;font-size:12px;color:var(--faint);padding:4px 18px 20px;display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap}
+.app-footer a{color:inherit;text-decoration:none}
+.app-footer a:hover{text-decoration:underline;color:var(--muted)}
+.foot-logo{width:18px;height:18px;object-fit:contain;margin-right:4px;opacity:.75}
+.tabs{display:flex;gap:4px;padding:0 20px;border-bottom:1px solid var(--border);position:sticky;top:52px;background:var(--surface);z-index:2}
+.tabs button{border:none;border-bottom:2px solid transparent;border-radius:0;background:transparent;padding:8px 14px;color:var(--muted)}
+.tabs button.on{border-bottom-color:var(--accent);color:var(--text);font-weight:600}
+
+.help h3{font-size:16px;margin:18px 0 6px}
+.help p,.help li{font-size:14px}
+.privacy{background:var(--warn-bg);color:var(--warn-text);border-radius:12px;padding:12px 16px;margin:10px 0}
+.privacy h3{margin-top:0;color:var(--warn-text);display:flex;gap:6px;align-items:center}
+.privacy li{margin:4px 0}
+.diagram{width:100%;height:auto;margin:6px 0}
+
+.banner{margin:12px 18px 0;padding:10px 14px;border-radius:var(--radius);background:var(--warn-bg);color:var(--warn-text);display:flex;align-items:center;gap:10px;font-size:14px;flex-wrap:wrap}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;z-index:100;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span id="logo"></span><span data-i18n="appTitle">Task Organizer</span></h1>
+  <div class="spacer"></div>
+  <button id="saveStatus" class="status" title=""></button>
+  <button id="btnNew" class="primary"></button>
+  <button id="btnArchive"></button>
+  <button id="btnHelp" class="icon"></button>
+  <button id="btnTheme" class="icon"></button>
+  <button id="btnLang"></button>
+  <button id="btnSettings" class="icon"></button>
+</header>
+
+<nav class="areabar" id="areabar">
+  <button type="button" data-area="private"></button>
+  <button type="button" data-area="business"></button>
+</nav>
+
+<div id="banner" class="banner hidden"></div>
+
+<div class="toolbar">
+  <div class="search"><span id="searchIcon"></span><input id="search" type="search" autocomplete="off"></div>
+  <select id="filterCat" aria-label="Kategorie"></select>
+  <select id="filterCust" aria-label="Kunde"></select>
+  <button id="btnCustomers"></button>
+</div>
+
+<main class="board" id="board"></main>
+<footer class="app-footer" id="appFooter"></footer>
+
+<!-- Erfassung / Bearbeitung -->
+<dialog id="dlgEditor">
+  <div class="dlg-head"><h2 id="edHead"></h2><span class="version" id="edTime"></span><button class="ghost icon" data-close data-i18n-title="btnClose"></button></div>
+  <div class="dlg-body dlg-scroll">
+    <label for="edTitle" data-i18n="fTitle">Aufgabe</label>
+    <input id="edTitle" autocomplete="off">
+    <div id="edCustBlock">
+      <label for="edCust" data-i18n="fCustomer">Kunde</label>
+      <div class="ac-wrap"><input id="edCust" autocomplete="off"><div id="acCust" class="ac hidden"></div></div>
+      <div class="grid3">
+        <div><label for="edContact" data-i18n="fContact">Ansprechperson</label><input id="edContact" autocomplete="off"></div>
+        <div><label for="edPhone" data-i18n="fPhone">Telefon</label><input id="edPhone" type="tel" autocomplete="off"></div>
+        <div><label for="edEmail" data-i18n="fEmail">E-Mail</label><input id="edEmail" type="email" autocomplete="off"></div>
+      </div>
+      <div class="hint" id="edCustHint"></div>
+    </div>
+    <label for="edCat" data-i18n="fCategory">Kategorie</label>
+    <div class="ac-wrap"><span class="cat-dot" id="edCatDot"></span><input id="edCat" class="with-dot" autocomplete="off"><div id="acCat" class="ac hidden"></div></div>
+    <div class="swatches" id="edSwatches"></div>
+    <div class="hint" id="edCatHint"></div>
+    <label data-i18n="fPrio">Priorität</label>
+    <div class="seg" id="edPrio">
+      <button type="button" data-p="1"></button>
+      <button type="button" data-p="2"></button>
+      <button type="button" data-p="3"></button>
+    </div>
+    <label data-i18n="fStatus">Spalte</label>
+    <div class="seg" id="edStatus"></div>
+    <label for="edDue" data-i18n="fDue">Fällig am</label>
+    <div class="due-row"><input id="edDue" type="date"><button type="button" class="ghost icon" id="edDueClear" data-i18n-title="clearDue"></button></div>
+    <label data-i18n="fRepeat">Wiederholen</label>
+    <div class="seg small" id="edRepeat"></div>
+    <div class="rep-box hidden" id="edRepBox">
+      <div class="rep-custom hidden" id="edRepCustom"><span data-i18n="repEvery">alle</span><input id="edRepN" type="number" min="1" max="365" step="1" value="3"><select id="edRepUnit"></select></div>
+      <div class="seg small" id="edRepMode" style="margin-top:8px"></div>
+      <div class="hint" id="edRepHint"></div>
+    </div>
+    <label for="edNote" data-i18n="fNote">Notiz</label>
+    <textarea id="edNote" rows="4"></textarea>
+    <div class="err hidden" id="edErr"></div>
+  </div>
+  <div class="dlg-foot">
+    <button id="edDelete" class="danger"></button>
+    <div class="spacer"></div>
+    <button data-close data-i18n="btnCancel">Abbrechen</button>
+    <button id="edSave" class="primary" data-i18n="btnSave">Speichern</button>
+  </div>
+</dialog>
+
+<!-- Bestätigung / Meldung -->
+<dialog id="dlgConfirm">
+  <div class="dlg-head"><h2 id="cfTitle"></h2></div>
+  <div class="dlg-body"><p id="cfText"></p></div>
+  <div class="dlg-foot"><div class="spacer"></div><button id="cfCancel" data-i18n="btnCancel">Abbrechen</button><button id="cfOk" class="primary">OK</button></div>
+</dialog>
+
+<!-- Archiv -->
+<dialog id="dlgArchive" class="wide">
+  <div class="dlg-head"><h2 data-i18n="archTitle">Archiv</h2><button class="ghost icon" data-close data-i18n-title="btnClose"></button></div>
+  <div class="dlg-body dlg-scroll">
+    <div class="arch-tools">
+      <div class="seg small" id="archArea"></div>
+      <div class="spacer"></div>
+      <input id="archSearch" type="search" style="width:260px" autocomplete="off">
+    </div>
+    <div id="archContent"></div>
+  </div>
+  <div class="dlg-foot">
+    <button id="archCsv"></button>
+    <div class="spacer"></div>
+    <button data-close data-i18n="btnClose">Schliessen</button>
+  </div>
+</dialog>
+
+<!-- Kunden -->
+<dialog id="dlgCustomer" class="wide">
+  <div class="dlg-head"><button class="ghost icon hidden" id="custBack"></button><h2 id="custTitle"></h2><button class="ghost icon" data-close data-i18n-title="btnClose"></button></div>
+  <div class="dlg-body dlg-scroll" id="custBody"></div>
+  <div class="dlg-foot" id="custFoot"></div>
+</dialog>
+
+<!-- Einstellungen -->
+<dialog id="dlgSettings" class="wide">
+  <div class="dlg-head"><h2 data-i18n="settings">Einstellungen</h2><button class="ghost icon" data-close data-i18n-title="btnClose"></button></div>
+  <div class="tabs" id="setTabs">
+    <button type="button" data-tab="general" data-i18n="tabGeneral">Allgemein</button>
+    <button type="button" data-tab="categories" data-i18n="tabCategories">Kategorien</button>
+    <button type="button" data-tab="customers" data-i18n="tabCustomers">Kunden</button>
+  </div>
+  <div class="dlg-body dlg-scroll" id="setBody"></div>
+  <div class="dlg-foot"><span class="version" id="setVersion"></span><div class="spacer"></div><button data-close class="primary" data-i18n="btnClose">Schliessen</button></div>
+</dialog>
+
+<!-- Hilfe -->
+<dialog id="dlgHelp" class="wide">
+  <div class="dlg-head"><h2 data-i18n="help">Hilfe</h2><button class="ghost icon" data-close data-i18n-title="btnClose"></button></div>
+  <div class="dlg-body dlg-scroll help" id="helpBody"></div>
+  <div class="dlg-foot"><span class="version" id="helpVersion"></span><div class="spacer"></div><button data-close class="primary" data-i18n="btnClose">Schliessen</button></div>
+</dialog>
+
+<input type="file" id="fileImport" accept=".json,application/json" class="hidden">
+<input type="file" id="fileCsv" accept=".csv,.txt,text/csv,text/plain" class="hidden">
+<div id="toast" class="toast"></div>
+
+<script>
+'use strict';
+const APP_NAME = 'Task Organizer';
+const APP_VERSION = '0.2.2';
+const APP_AUTHOR = 'alpine-marmot';
+const REPO_URL = 'https://github.com/alpine-marmot/task-organizer';
+const PROFILE_URL = 'https://github.com/alpine-marmot';
+const LOGO_LIGHT = 'data:image/png;base64,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';
+const LOGO_DARK = 'data:image/png;base64,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';
+const RELEASE_YEAR = '2026';
+const LS_KEY = 'to_state_v1';
+const CHANGELOG = [
+  { v: '0.2.2', d: '19.11.2026', de: 'Veröffentlichung auf GitHub: Autor «alpine-marmot», Fusszeile mit Logo und Links zu Repository und Profil.', en: 'Published on GitHub: author “alpine-marmot”, footer with logo and links to the repository and profile.' },
+  { v: '0.2.1', d: '18.11.2026', de: 'Doppelklick auf die leere Fläche der Spalten Offen, Geplant oder Warten öffnet «Neue Aufgabe» mit dieser Spalte vorausgewählt.', en: 'Double-clicking the empty area of the Open, Planned or Waiting column opens “New task” with that column preselected.' },
+  { v: '0.2.0', d: '14.11.2026', de: 'Wiederkehrende Aufgaben (ab Erledigt oder nach festem Plan, neue Karte erscheint kurz vor der Fälligkeit in «Geplant»), Kunden-Ansicht mit Kundenkarte und Aufgabenliste, neues Kundenfeld «Ansprechperson».', en: 'Recurring tasks (from completion or on a fixed schedule; the next card appears in “Planned” shortly before it’s due), customer view with customer card and task list, new customer field “Contact person”.' },
+  { v: '0.1.0', d: '14.11.2026', de: 'Erste Beta-Version: Bereiche Privat und Geschäftlich, vier Spalten (Offen, Geplant, Warten, Erledigt), Priorität 1–3, Kategorien mit Farben, Fälligkeitsdatum, Notiz, Kunden mit Telefon und E-Mail, Sortierung pro Spalte, Drag & Drop und Menü «Verschieben nach …», Archiv (per Knopf oder automatisch), Speichern in Datei, Einstellungen, Hilfe, Hell/Dunkel, DE/EN, Tastenkürzel.', en: 'First beta: Private and Business areas, four columns (Open, Planned, Waiting, Done), priority 1–3, coloured categories, due date, note, customers with phone and email, per-column sorting, drag & drop and “Move to …” menu, archive (manual or automatic), saving to a file, settings, help, light/dark, DE/EN, keyboard shortcuts.' }
+];
+const COLS = ['open', 'planned', 'waiting', 'done'];
+const AREAS = ['private', 'business'];
+const SORTS = ['prio', 'created', 'due', 'color', 'manual'];
+const PALETTE = ['#378ADD', '#639922', '#E24B4A', '#BA7517', '#7F77DD', '#D4537E', '#1D9E75', '#D85A30', '#888780'];
+const COL_COLORS = { open: 'var(--faint)', planned: 'var(--accent)', waiting: 'var(--yellow)', done: 'var(--green)' };
+
+/* ---------- Texte DE / EN ---------- */
+const I18N = {
+  de: {
+    appTitle: 'Task Organizer', newTask: 'Neue Aufgabe', archive: 'Archiv', help: 'Hilfe', settings: 'Einstellungen',
+    toggleTheme: 'Hell/Dunkel umschalten', language: 'Sprache',
+    area_private: 'Privat', area_business: 'Geschäftlich',
+    col_open: 'Offen', col_planned: 'Geplant', col_waiting: 'Warten', col_done: 'Erledigt',
+    empty_open: 'Neue Aufgabe mit Alt+N oder Doppelklick hier erfassen.', empty_planned: 'Aufgaben, die eingeplant sind. Doppelklick hier = neue Aufgabe.', empty_waiting: 'Aufgaben, die auf etwas warten – Rückmeldung, Lieferung, Termin. Doppelklick hier = neue Aufgabe.', dblHint: 'Doppelklick auf eine leere Stelle: neue Aufgabe in dieser Spalte',
+    empty_done: 'Erledigte Aufgaben. Sie werden nach {n} Tagen automatisch archiviert.', empty_done_off: 'Erledigte Aufgaben – bereit zum Archivieren.',
+    archiveAll: 'Alle archivieren',
+    sort_prio: 'Priorität', sort_created: 'Erfassungsdatum', sort_due: 'Fälligkeit', sort_color: 'Farbe', sort_manual: 'Manuell', sortTitle: 'Sortierung dieser Spalte',
+    searchPh: 'Suche: Aufgabe, Notiz, Kategorie, Kunde', allCats: 'Alle Kategorien', allCusts: 'Alle Kunden', noCat: 'Ohne Kategorie',
+    prio1: 'Hoch', prio2: 'Mittel', prio3: 'Tief', prioWord: 'Priorität {n}',
+    fTitle: 'Aufgabe', titlePh: 'z. B. Staubsaugen Wohnung', fCustomer: 'Kunde', custPh: 'Name eintippen – Kunden werden vorgeschlagen', fPhone: 'Telefon', fEmail: 'E-Mail',
+    fCategory: 'Kategorie', catPh: 'z. B. Haushalt – Kategorien werden vorgeschlagen', customColor: 'Eigene Farbe', fPrio: 'Priorität', fStatus: 'Spalte',
+    fDue: 'Fällig am', clearDue: 'Datum entfernen', fNote: 'Notiz', notePh: 'Details (freiwillig)',
+    newCatHint: 'Neue Kategorie «{name}» wird gespeichert.', catColorHint: 'Die Farbe gilt für alle Aufgaben in «{name}».',
+    newCustHint: 'Neuer Kunde «{name}» wird gespeichert.', custHint: 'Telefon und E-Mail werden beim Kunden gespeichert.',
+    acNew: 'neu', tasksN: '{n} Aufgaben',
+    editorNew: 'Neue Aufgabe', editorEdit: 'Aufgabe bearbeiten', errTitle: 'Bitte die Aufgabe beschreiben.',
+    btnSave: 'Speichern', btnCancel: 'Abbrechen', btnDelete: 'Löschen', btnClose: 'Schliessen', btnArchive: 'Archivieren', btnRestore: 'Wiederherstellen',
+    btnMove: 'Verschieben nach …', moveTo: 'Verschieben nach', btnEdit: 'Bearbeiten',
+    confirmDeleteTitle: 'Aufgabe endgültig löschen?', confirmDeleteText: 'Die Aufgabe wird gelöscht und erscheint auch nicht im Archiv.',
+    archivedOne: 'Archiviert', archivedN: '{n} Aufgaben archiviert', autoArchivedN: '{n} erledigte Aufgabe(n) automatisch archiviert',
+    restored: 'Wiederhergestellt – steht wieder in «Erledigt»', switchedManual: 'Spalte «{col}» sortiert jetzt manuell', moved: 'Verschoben nach «{col}»',
+    dueToday: 'heute fällig', overdue: 'überfällig seit {date}', dueOn: 'fällig {date}', doneOn: 'erledigt {date}', hasNote: 'Hat eine Notiz', createdOn: 'Erfasst {date} · {time}',
+    archTitle: 'Archiv', archSearchPh: 'Archiv durchsuchen', archEmpty: 'Noch keine archivierten Aufgaben in diesem Bereich.', archNoHits: 'Keine Treffer.',
+    archCount: '{n} archivierte Aufgabe(n)', archExportCsv: 'CSV exportieren',
+    thDone: 'Erledigt', thTitle: 'Aufgabe', thCategory: 'Kategorie', thCustomer: 'Kunde', thPrio: 'Prio', thDue: 'Fällig', thArea: 'Bereich', thStatus: 'Spalte',
+    thCreated: 'Erfasst', thArchived: 'Archiviert', thNote: 'Notiz', thPhone: 'Telefon', thEmail: 'E-Mail', thName: 'Name', thCount: 'Aufgaben', thColor: 'Farbe',
+    tabGeneral: 'Allgemein', tabCategories: 'Kategorien', tabCustomers: 'Kunden',
+    setStorage: 'Speicherort', storageNone: 'Keine Datei gewählt. Die Daten liegen nur im Browser dieses Computers – bitte eine Datei anlegen.',
+    storageFile: 'Datei: {name}', storageReconnect: 'Die Datei «{name}» muss nach dem Neustart des Browsers wieder freigegeben werden.',
+    btnNewFile: 'Neue Datei anlegen', btnOpenFile: 'Bestehende Datei öffnen', btnReconnect: 'Wieder verbinden', btnExport: 'Sicherung exportieren', btnImport: 'Sicherung importieren',
+    storageUnsupported: 'Dieser Browser kann nicht direkt in eine Datei speichern. Bitte Google Chrome oder Microsoft Edge verwenden oder regelmässig eine Sicherung exportieren.',
+    lastSaved: 'Zuletzt gespeichert: {time}', storageHint: 'Aus Sicherheitsgründen zeigt der Browser nur den Dateinamen, nicht den ganzen Pfad. Datenschutz-Hinweise in der Hilfe beachten.',
+    setArchive: 'Archiv', archiveDaysLabel: 'Erledigte Aufgaben automatisch archivieren nach', days: 'Tagen', archiveDaysHint: '0 = nie automatisch archivieren. Der Knopf «Archivieren» funktioniert immer.',
+    setDisplay: 'Darstellung', theme: 'Design', themeLight: 'Hell', themeDark: 'Dunkel', themeSystem: 'System',
+    setShortcuts: 'Tastenkürzel', version: 'Version {v} (Beta)',
+    catAdd: 'Kategorie hinzufügen', catEmpty: 'Noch keine Kategorien. Sie entstehen automatisch beim Erfassen einer Aufgabe.', catHint: 'Eine geänderte Farbe gilt sofort für alle Aufgaben dieser Kategorie.',
+    catDeleteTitle: 'Kategorie löschen?', catDeleteText: '{n} Aufgabe(n) verlieren diese Kategorie.', newCatName: 'Neue Kategorie',
+    custAdd: 'Kunde hinzufügen', custImport: 'CSV importieren', custEmpty: 'Noch keine Kunden. Sie entstehen automatisch beim Erfassen einer geschäftlichen Aufgabe.',
+    custHintCsv: 'CSV-Format: Name;Telefon;E-Mail;Ansprechperson – eine Zeile pro Kunde.', custImported: '{n} Kunden importiert',
+    custDeleteTitle: 'Kunde löschen?', custDeleteText: '{n} Aufgabe(n) verlieren diesen Kunden.',
+    statusBrowserOnly: 'Nur im Browser', statusSaved: 'Gespeichert {time}', statusSaving: 'Speichert …', statusError: 'Fehler beim Speichern', statusReconnect: 'Datei verbinden', statusNoFs: 'Nur im Browser',
+    statusTip: 'Speicherort in den Einstellungen',
+    importConfirmTitle: 'Daten ersetzen?', importConfirmText: 'Die aktuellen Daten werden durch den Inhalt der Datei ersetzt.', importOk: 'Daten geladen', importBad: 'Die Datei enthält keine gültigen Daten.',
+    newFileOk: 'Datei angelegt – es wird automatisch gespeichert', fileConnected: 'Datei verbunden', fileError: 'Auf die Datei konnte nicht zugegriffen werden.',
+    bannerReconnect: 'Die Datendatei «{name}» ist noch nicht freigegeben. Ohne Freigabe wird nur im Browser gespeichert.',
+    bannerNoFile: 'Es ist noch keine Datendatei gewählt. Die Daten liegen nur im Browser.', bannerChoose: 'Datei wählen', bannerLater: 'Später',
+    hWhatT: 'Was die App macht', hWhat: 'Der Task Organizer sammelt Arbeiten, Aufgaben und To-dos – getrennt in einen privaten und einen geschäftlichen Bereich. Jede Aufgabe ist eine Karte und wandert durch vier Spalten, bis sie erledigt ist. Danach kommt sie ins Archiv.',
+    hFlowT: 'Ablauf einer Aufgabe', hFlow: 'Karten lassen sich frei zwischen allen Spalten verschieben. Erledigte Karten archivieren Sie per Knopf, oder sie werden nach einer einstellbaren Anzahl Tage automatisch archiviert. Aus dem Archiv lassen sie sich wiederherstellen.',
+    hColsT: 'Die vier Spalten', hColOpen: 'neu erfasst, noch nicht eingeplant.', hColPlanned: 'Sie wissen, wann Sie es erledigen.', hColWaiting: 'angefangen, wartet aber auf etwas – eine Rückmeldung, eine Lieferung, einen Termin.', hColDone: 'fertig. Wird nach der eingestellten Frist automatisch archiviert.',
+    hAreasT: 'Privat und Geschäftlich', hAreas: 'Oben wechseln Sie zwischen den Bereichen (Alt+B). Jeder Bereich hat eigene Aufgaben und Kategorien. Kunden gibt es nur im geschäftlichen Bereich.',
+    hCatT: 'Kategorien und Farben', hCat: 'Tippen Sie eine Kategorie ein. Ist sie neu, wird sie beim Speichern angelegt und bekommt die nächste freie Farbe. Danach wird sie vorgeschlagen. Die Farbe wählen Sie direkt beim Erfassen oder in den Einstellungen unter «Kategorien». Sie gilt für alle Aufgaben dieser Kategorie und erscheint als farbiger Rand der Karte.',
+    hCustT: 'Kunden', hCust: 'Im geschäftlichen Bereich hat jede Aufgabe ein Feld «Kunde». Neue Kunden werden beim Speichern angelegt, bekannte vorgeschlagen. Ansprechperson, Telefon und E-Mail gehören zum Kunden: Ändern Sie sie in einer Aufgabe, gilt das für alle Aufgaben dieses Kunden. Ein Klick auf den blauen Kunden-Chip einer Karte oder der Knopf «Kunden» öffnet die Kundenkarte: Kontaktdaten zum Anklicken, alle offenen Aufgaben nach Spalte, erledigte und archivierte Aufgaben sowie «Neue Aufgabe für …». Die Kundenliste zum Bearbeiten finden Sie in den Einstellungen, inklusive CSV-Import.',
+    hPrioT: 'Priorität und Fälligkeit', hPrio: 'Priorität 1 ist am wichtigsten, 3 am wenigsten wichtig. Priorität 1 ist auf der Karte rot markiert. Überfällige Aufgaben sind rot, heute fällige gelb.',
+    hSortT: 'Sortieren', hSort: 'Jede Spalte hat oben ein eigenes Menü: nach Priorität, Erfassungsdatum (neueste zuerst), Fälligkeit, Farbe (nach Kategorie) oder manuell.',
+    hDndT: 'Verschieben', hDnd: 'Ziehen Sie eine Karte mit der Maus in eine andere Spalte. Innerhalb einer Spalte bestimmen Sie so die Reihenfolge; ist die Spalte anders sortiert, wechselt sie dabei auf «Manuell». Ohne Ziehen geht es über das Pfeil-Symbol auf der Karte («Verschieben nach …») oder im Bearbeiten-Fenster unter «Spalte». Ein Klick auf die Karte öffnet sie zum Bearbeiten. Ein Doppelklick auf eine leere Stelle in den Spalten Offen, Geplant oder Warten öffnet «Neue Aufgabe» – die Spalte ist dabei schon vorausgewählt.',
+    hArchT: 'Archiv', hArch: 'Im Archiv wählen Sie den Bereich, suchen nach Aufgaben, stellen sie wieder her oder löschen sie endgültig. Die Liste lässt sich als CSV für Excel exportieren.',
+    hSaveT: 'Speichern', hSave: 'In den Einstellungen wird eine Datendatei angelegt oder geöffnet. Danach speichert die App jede Änderung automatisch in diese Datei – Privat und Geschäftlich zusammen. Nach einem Neustart des Browsers muss die Datei einmal mit «Wieder verbinden» freigegeben werden. Das funktioniert in Google Chrome und Microsoft Edge; in Safari bleiben die Daten nur im Browser, dann regelmässig eine Sicherung exportieren.',
+    hPrivT: 'Datenschutz',
+    pWhereT: 'Wo die Daten liegen', pWhere: 'Ausschliesslich in der gewählten Datendatei und zusätzlich im Zwischenspeicher des Browsers auf diesem Computer.',
+    pCloudT: 'Kein Internet', pCloud: 'Die App sendet keine Daten ins Internet und nutzt keinen Online-Dienst.',
+    pCustT: 'Kundendaten sind Personendaten', pCust: 'Namen, Ansprechpersonen, Telefonnummern und E-Mail-Adressen von Kunden fallen unter das Schweizer Datenschutzgesetz (DSG). Nur erfassen, was Sie für die Arbeit brauchen, aktuell halten und löschen, wenn es nicht mehr nötig ist.',
+    pDriveT: 'Achtung Cloud-Ordner', pDrive: 'Liegt die Datei in einem Ordner, der mit einer Cloud synchronisiert wird (z. B. iCloud Drive, OneDrive, Google Drive, Dropbox), werden alle Daten dorthin kopiert. Dann gelten die Regeln dieses Speichers.',
+    pPathT: 'Speicherort prüfen', pPath: 'Der Browser zeigt nur den Dateinamen, nicht den Ordner. Die App kann darum nicht erkennen, ob die Datei in einem Cloud-Ordner liegt – das bitte selbst prüfen.',
+    hScT: 'Tastenkürzel', hVerT: 'Versionen',
+    scNew: 'Neue Aufgabe', scSave: 'Speichern (im Formular)', scPrio: 'Priorität 1 / 2 / 3 (im Formular)', scArea: 'Bereich wechseln', scSearch: 'Suche', scClose: 'Fenster oder Menü schliessen',
+    scMacHint: 'Auf dem Mac: Alt = Wahltaste (⌥), Ctrl kann auch Cmd (⌘) sein.',
+    dgTitle: 'Jede Aufgabe wandert nach rechts und landet im Archiv', dgFree: 'Karten frei zwischen allen Spalten verschieben',
+    dgOpenSub: 'neu erfasst', dgPlannedSub: 'eingeplant', dgWaitingSub: 'wartet auf etwas', dgDoneSub: 'fertig',
+    dgArchive: 'Archiv', dgArchiveSub: 'durchsuchbar, CSV', dgArchiving: 'Knopf oder nach {n} Tagen', dgArchivingOff: 'per Knopf', dgRestore: 'wiederherstellen',
+    csvFile: 'task-organizer_archiv',
+    fRepeat: 'Wiederholen', rep_none: 'Nie', rep_d1: 'Täglich', rep_w1: 'Wöchentlich', rep_w2: 'Alle 2 Wochen', rep_m1: 'Monatlich', rep_y1: 'Jährlich', rep_custom: 'Eigene …',
+    rl_d1: 'täglich', rl_w1: 'wöchentlich', rl_w2: 'alle 2 Wochen', rl_m1: 'monatlich', rl_y1: 'jährlich', rlCustom: 'alle {n} {unit}',
+    repEvery: 'alle', unit_day: 'Tage', unit_week: 'Wochen', unit_month: 'Monate', unit_year: 'Jahre',
+    repMode_done: 'ab Erledigt', repMode_plan: 'nach festem Plan',
+    repHint_done: 'Das nächste Datum zählt ab dem Tag, an dem Sie die Aufgabe erledigen. Heute erledigt → nächste Karte fällig am {date}, sichtbar ab {show}.',
+    repHint_plan: 'Das nächste Datum folgt dem Plan ab dem Fälligkeitsdatum, egal wann Sie erledigen. Nächste Karte fällig am {date}, sichtbar ab {show}.',
+    errRepN: 'Bitte eine Zahl von 1 bis 365 eingeben.',
+    spawned: 'Nächste Wiederholung am {date} vorbereitet', upcomingShow: '↻ {n} kommende Wiederholung(en) anzeigen', upcomingHide: 'Kommende Wiederholungen ausblenden', visibleFrom: 'sichtbar ab {date}',
+    customers: 'Kunden', fContact: 'Ansprechperson', thContact: 'Ansprechperson', custCounts: '{o} offen · {d} erledigt', custNewTask: 'Neue Aufgabe für {name}',
+    custDoneArch: 'Erledigt und Archiv', custShow: 'anzeigen', custHide: 'ausblenden', custEditData: 'Kundendaten bearbeiten', custBack: 'Alle Kunden',
+    custSearchPh: 'Kunden suchen', custNoTasks: 'Keine offenen Aufgaben.', custNoDone: 'Noch nichts erledigt.', archivedTag: 'archiviert', custUnknown: 'Kunde nicht gefunden.',
+    hRepT: 'Wiederkehrende Aufgaben', hRep: 'Wählen Sie beim Erfassen unter «Wiederholen», wie oft eine Aufgabe anfällt. «Ab Erledigt» zählt ab dem Tag, an dem Sie die Aufgabe erledigen (z. B. Staubsaugen: 7 Tage später). «Nach festem Plan» folgt dem Kalender ab dem Fälligkeitsdatum (z. B. Rechnung immer am 1.). Sobald eine Karte in «Erledigt» landet, wird die nächste in «Geplant» vorbereitet. Sie erscheint erst kurz vor der Fälligkeit – bei täglich am selben Tag, sonst 2 Tage vorher. Vorbereitete Karten sehen Sie unten in «Geplant» über «kommende Wiederholungen». Ohne Fälligkeitsdatum gilt der Erfassungstag als Start. Beenden: bei der nächsten Karte «Nie» wählen oder sie löschen.'
+  },
+  en: {
+    appTitle: 'Task Organizer', newTask: 'New task', archive: 'Archive', help: 'Help', settings: 'Settings',
+    toggleTheme: 'Toggle light/dark', language: 'Language',
+    area_private: 'Private', area_business: 'Business',
+    col_open: 'Open', col_planned: 'Planned', col_waiting: 'Waiting', col_done: 'Done',
+    empty_open: 'Add a new task with Alt+N or double-click here.', empty_planned: 'Tasks you have scheduled. Double-click here for a new task.', empty_waiting: 'Tasks waiting on something – a reply, a delivery, an appointment. Double-click here for a new task.', dblHint: 'Double-click an empty spot: new task in this column',
+    empty_done: 'Finished tasks. They are archived automatically after {n} days.', empty_done_off: 'Finished tasks – ready to archive.',
+    archiveAll: 'Archive all',
+    sort_prio: 'Priority', sort_created: 'Date added', sort_due: 'Due date', sort_color: 'Colour', sort_manual: 'Manual', sortTitle: 'Sort this column',
+    searchPh: 'Search: task, note, category, customer', allCats: 'All categories', allCusts: 'All customers', noCat: 'No category',
+    prio1: 'High', prio2: 'Medium', prio3: 'Low', prioWord: 'Priority {n}',
+    fTitle: 'Task', titlePh: 'e.g. Vacuum the flat', fCustomer: 'Customer', custPh: 'Type a name – customers are suggested', fPhone: 'Phone', fEmail: 'Email',
+    fCategory: 'Category', catPh: 'e.g. Household – categories are suggested', customColor: 'Custom colour', fPrio: 'Priority', fStatus: 'Column',
+    fDue: 'Due on', clearDue: 'Remove date', fNote: 'Note', notePh: 'Details (optional)',
+    newCatHint: 'New category “{name}” will be saved.', catColorHint: 'The colour applies to all tasks in “{name}”.',
+    newCustHint: 'New customer “{name}” will be saved.', custHint: 'Phone and email are saved with the customer.',
+    acNew: 'new', tasksN: '{n} tasks',
+    editorNew: 'New task', editorEdit: 'Edit task', errTitle: 'Describe the task.',
+    btnSave: 'Save', btnCancel: 'Cancel', btnDelete: 'Delete', btnClose: 'Close', btnArchive: 'Archive', btnRestore: 'Restore',
+    btnMove: 'Move to …', moveTo: 'Move to', btnEdit: 'Edit',
+    confirmDeleteTitle: 'Delete task permanently?', confirmDeleteText: 'The task is deleted and won’t appear in the archive.',
+    archivedOne: 'Archived', archivedN: '{n} tasks archived', autoArchivedN: '{n} finished task(s) archived automatically',
+    restored: 'Restored – back in “Done”', switchedManual: 'Column “{col}” is now sorted manually', moved: 'Moved to “{col}”',
+    dueToday: 'due today', overdue: 'overdue since {date}', dueOn: 'due {date}', doneOn: 'done {date}', hasNote: 'Has a note', createdOn: 'Added {date} · {time}',
+    archTitle: 'Archive', archSearchPh: 'Search archive', archEmpty: 'No archived tasks in this area yet.', archNoHits: 'No matches.',
+    archCount: '{n} archived task(s)', archExportCsv: 'Export CSV',
+    thDone: 'Done', thTitle: 'Task', thCategory: 'Category', thCustomer: 'Customer', thPrio: 'Prio', thDue: 'Due', thArea: 'Area', thStatus: 'Column',
+    thCreated: 'Added', thArchived: 'Archived', thNote: 'Note', thPhone: 'Phone', thEmail: 'Email', thName: 'Name', thCount: 'Tasks', thColor: 'Colour',
+    tabGeneral: 'General', tabCategories: 'Categories', tabCustomers: 'Customers',
+    setStorage: 'Storage', storageNone: 'No file chosen. Data lives only in this computer’s browser – create a file.',
+    storageFile: 'File: {name}', storageReconnect: 'The file “{name}” must be allowed again after the browser restarts.',
+    btnNewFile: 'Create new file', btnOpenFile: 'Open existing file', btnReconnect: 'Reconnect', btnExport: 'Export backup', btnImport: 'Import backup',
+    storageUnsupported: 'This browser can’t save directly to a file. Use Google Chrome or Microsoft Edge, or export a backup regularly.',
+    lastSaved: 'Last saved: {time}', storageHint: 'For security the browser shows only the file name, not the full path. See the data protection notes in Help.',
+    setArchive: 'Archive', archiveDaysLabel: 'Archive finished tasks automatically after', days: 'days', archiveDaysHint: '0 = never archive automatically. The “Archive” button always works.',
+    setDisplay: 'Display', theme: 'Theme', themeLight: 'Light', themeDark: 'Dark', themeSystem: 'System',
+    setShortcuts: 'Keyboard shortcuts', version: 'Version {v} (beta)',
+    catAdd: 'Add category', catEmpty: 'No categories yet. They’re created automatically when you add a task.', catHint: 'A changed colour applies to all tasks in that category right away.',
+    catDeleteTitle: 'Delete category?', catDeleteText: '{n} task(s) lose this category.', newCatName: 'New category',
+    custAdd: 'Add customer', custImport: 'Import CSV', custEmpty: 'No customers yet. They’re created automatically when you add a business task.',
+    custHintCsv: 'CSV format: Name;Phone;Email;Contact person – one line per customer.', custImported: '{n} customers imported',
+    custDeleteTitle: 'Delete customer?', custDeleteText: '{n} task(s) lose this customer.',
+    statusBrowserOnly: 'Browser only', statusSaved: 'Saved {time}', statusSaving: 'Saving…', statusError: 'Save failed', statusReconnect: 'Connect file', statusNoFs: 'Browser only',
+    statusTip: 'Storage in settings',
+    importConfirmTitle: 'Replace data?', importConfirmText: 'The current data is replaced by the file’s content.', importOk: 'Data loaded', importBad: 'The file doesn’t contain valid data.',
+    newFileOk: 'File created – changes save automatically', fileConnected: 'File connected', fileError: 'Couldn’t access the file.',
+    bannerReconnect: 'The data file “{name}” isn’t allowed yet. Until then, data is saved only in the browser.',
+    bannerNoFile: 'No data file chosen yet. Data lives only in the browser.', bannerChoose: 'Choose file', bannerLater: 'Later',
+    hWhatT: 'What the app does', hWhat: 'Task Organizer collects chores, tasks and to-dos – split into a private and a business area. Each task is a card that moves through four columns until it’s done. Then it goes to the archive.',
+    hFlowT: 'How a task flows', hFlow: 'Cards can move freely between all columns. Archive finished cards with the button, or they’re archived automatically after a number of days you set. You can restore them from the archive.',
+    hColsT: 'The four columns', hColOpen: 'just added, not scheduled yet.', hColPlanned: 'you know when you’ll do it.', hColWaiting: 'started, but waiting on something – a reply, a delivery, an appointment.', hColDone: 'finished. Archived automatically after the set period.',
+    hAreasT: 'Private and Business', hAreas: 'Switch areas at the top (Alt+B). Each area has its own tasks and categories. Customers exist only in the business area.',
+    hCatT: 'Categories and colours', hCat: 'Type a category. If it’s new, it’s created when you save and gets the next free colour. After that it’s suggested. Pick the colour while adding a task or in Settings under “Categories”. It applies to every task in that category and shows as the card’s coloured edge.',
+    hCustT: 'Customers', hCust: 'In the business area every task has a “Customer” field. New customers are created when you save, known ones are suggested. Contact person, phone and email belong to the customer: change them in one task and it applies to all of that customer’s tasks. Click the blue customer chip on a card or the “Customers” button to open the customer card: clickable contact details, all open tasks by column, done and archived tasks, and “New task for …”. The editable customer list is in Settings, including CSV import.',
+    hPrioT: 'Priority and due date', hPrio: 'Priority 1 is the most important, 3 the least. Priority 1 is marked red on the card. Overdue tasks are red, tasks due today yellow.',
+    hSortT: 'Sorting', hSort: 'Each column has its own menu: by priority, date added (newest first), due date, colour (by category) or manual.',
+    hDndT: 'Moving cards', hDnd: 'Drag a card to another column. Within a column, dragging sets the order; if the column is sorted differently, it switches to “Manual”. Without dragging, use the arrow icon on the card (“Move to …”) or “Column” in the edit window. Click a card to edit it. Double-click an empty spot in the Open, Planned or Waiting column to open “New task” with that column preselected.',
+    hArchT: 'Archive', hArch: 'In the archive, pick the area, search tasks, restore them or delete them for good. Export the list as CSV for Excel.',
+    hSaveT: 'Saving', hSave: 'Create or open a data file in settings. After that, every change is saved to it automatically – Private and Business together. After the browser restarts, allow the file once with “Reconnect”. This works in Google Chrome and Microsoft Edge; in Safari the data stays in the browser only, so export a backup regularly.',
+    hPrivT: 'Data protection',
+    pWhereT: 'Where data is stored', pWhere: 'Only in the chosen data file, plus the browser cache on this computer.',
+    pCloudT: 'No internet', pCloud: 'The app sends no data to the internet and uses no online service.',
+    pCustT: 'Customer data is personal data', pCust: 'Customer names, contact persons, phone numbers and email addresses fall under the Swiss Data Protection Act (FADP). Record only what you need for the work, keep it current and delete it when no longer needed.',
+    pDriveT: 'Watch out for cloud folders', pDrive: 'If the file is in a folder synced to a cloud (e.g. iCloud Drive, OneDrive, Google Drive, Dropbox), all data is copied there and that storage’s rules apply.',
+    pPathT: 'Check the location', pPath: 'The browser shows only the file name, not the folder, so the app can’t tell whether the file is in a cloud folder – check this yourself.',
+    hScT: 'Keyboard shortcuts', hVerT: 'Versions',
+    scNew: 'New task', scSave: 'Save (in form)', scPrio: 'Priority 1 / 2 / 3 (in form)', scArea: 'Switch area', scSearch: 'Search', scClose: 'Close window or menu',
+    scMacHint: 'On a Mac: Alt = Option (⌥), Ctrl can also be Cmd (⌘).',
+    dgTitle: 'Every task moves right and ends up in the archive', dgFree: 'Move cards freely between all columns',
+    dgOpenSub: 'just added', dgPlannedSub: 'scheduled', dgWaitingSub: 'waiting on something', dgDoneSub: 'finished',
+    dgArchive: 'Archive', dgArchiveSub: 'searchable, CSV', dgArchiving: 'button or after {n} days', dgArchivingOff: 'button', dgRestore: 'restore',
+    csvFile: 'task-organizer_archive',
+    fRepeat: 'Repeat', rep_none: 'Never', rep_d1: 'Daily', rep_w1: 'Weekly', rep_w2: 'Every 2 weeks', rep_m1: 'Monthly', rep_y1: 'Yearly', rep_custom: 'Custom …',
+    rl_d1: 'daily', rl_w1: 'weekly', rl_w2: 'every 2 weeks', rl_m1: 'monthly', rl_y1: 'yearly', rlCustom: 'every {n} {unit}',
+    repEvery: 'every', unit_day: 'days', unit_week: 'weeks', unit_month: 'months', unit_year: 'years',
+    repMode_done: 'from completion', repMode_plan: 'fixed schedule',
+    repHint_done: 'The next date counts from the day you finish the task. Done today → next card due {date}, visible from {show}.',
+    repHint_plan: 'The next date follows the schedule from the due date, no matter when you finish. Next card due {date}, visible from {show}.',
+    errRepN: 'Enter a number from 1 to 365.',
+    spawned: 'Next repeat prepared for {date}', upcomingShow: '↻ Show {n} upcoming repeat(s)', upcomingHide: 'Hide upcoming repeats', visibleFrom: 'visible from {date}',
+    customers: 'Customers', fContact: 'Contact person', thContact: 'Contact person', custCounts: '{o} open · {d} done', custNewTask: 'New task for {name}',
+    custDoneArch: 'Done and archive', custShow: 'show', custHide: 'hide', custEditData: 'Edit customer details', custBack: 'All customers',
+    custSearchPh: 'Search customers', custNoTasks: 'No open tasks.', custNoDone: 'Nothing done yet.', archivedTag: 'archived', custUnknown: 'Customer not found.',
+    hRepT: 'Recurring tasks', hRep: 'When adding a task, choose under “Repeat” how often it comes up. “From completion” counts from the day you finish it (e.g. vacuuming: 7 days later). “Fixed schedule” follows the calendar from the due date (e.g. invoice always on the 1st). As soon as a card lands in “Done”, the next one is prepared in “Planned”. It only appears shortly before it’s due – the same day for daily, otherwise 2 days before. See prepared cards at the bottom of “Planned” under “upcoming repeats”. Without a due date, the day it was added is the start. To stop: choose “Never” on the next card or delete it.'
+  }
+};
+
+/* ---------- Symbole ---------- */
+const ICONS = {
+  checklist: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5 2.5-2.5M3.5 18l1.5 1.5 2.5-2.5"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  archive: '<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  trash: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+  x: '<path d="M18 6L6 18M6 6l12 12"/>',
+  file: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/>',
+  download: '<path d="M12 3v12M7 10l5 5 5-5M4 21h16"/>',
+  upload: '<path d="M12 21V9M7 14l5-5 5 5M4 3h16"/>',
+  shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
+  users: '<circle cx="9" cy="8" r="4"/><path d="M2 21v-1a6 6 0 0 1 12 0v1M16 3.5a4 4 0 0 1 0 9M22 21v-1a6 6 0 0 0-4-5.6"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/>',
+  keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
+  palette: '<circle cx="12" cy="12" r="9"/><circle cx="8" cy="10" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16" cy="10" r="1"/><path d="M12 21a2 2 0 0 1 0-4h2a3 3 0 0 0 3-3"/>',
+  tag: '<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><path d="M7.5 7.5h.01"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
+  note: '<path d="M4 4h16v12l-4 4H4z"/><path d="M16 20v-4h4M8 9h8M8 13h5"/>',
+  move: '<path d="M5 9l-3 3 3 3M19 9l3 3-3 3M2 12h20"/>',
+  check: '<path d="M5 12l5 5 9-10"/>',
+  restore: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  repeat: '<path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+  phone: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+  back: '<path d="M15 18l-6-6 6-6"/>',
+  edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>'
+};
+function icon(name, size) {
+  const st = size ? ' style="width:' + size + 'px;height:' + size + 'px"' : '';
+  return '<svg class="i"' + st + ' viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[name] || '') + '</svg>';
+}
+
+/* ---------- Zustand ---------- */
+function defaultSort() {
+  const o = {};
+  AREAS.forEach(a => { o[a] = { open: 'prio', planned: 'due', waiting: 'created', done: 'manual' }; });
+  return o;
+}
+function defaultState() {
+  return {
+    app: 'task-organizer', schema: 1, savedAt: 0,
+    settings: { lang: 'de', theme: 'system', archiveDays: 14, area: 'private', sort: defaultSort() },
+    categories: [], customers: [], tasks: []
+  };
+}
+const arr = v => Array.isArray(v) ? v : [];
+const REP_UNITS = ['day', 'week', 'month', 'year'];
+const REP_PRESETS = { d1: ['day', 1], w1: ['week', 1], w2: ['week', 2], m1: ['month', 1], y1: ['year', 1] };
+function normalizeRepeat(r) {
+  if (!r || typeof r !== 'object' || !REP_UNITS.includes(r.unit)) return null;
+  const every = Math.min(365, Math.max(1, Math.round(Number(r.every) || 1)));
+  return { unit: r.unit, every, mode: r.mode === 'plan' ? 'plan' : 'done', anchor: Math.min(31, Math.max(0, Math.round(Number(r.anchor) || 0))) };
+}
+function normalizeState(data) {
+  const d = defaultState();
+  if (!data || typeof data !== 'object') return d;
+  const out = { ...d, ...data, settings: { ...d.settings, ...(data.settings || {}) }, categories: arr(data.categories), customers: arr(data.customers), tasks: arr(data.tasks) };
+  const s = defaultSort(), given = out.settings.sort || {};
+  AREAS.forEach(a => { s[a] = { ...s[a], ...(given[a] || {}) }; COLS.forEach(c => { if (!SORTS.includes(s[a][c])) s[a][c] = 'prio'; }); });
+  out.settings.sort = s;
+  if (!AREAS.includes(out.settings.area)) out.settings.area = 'private';
+  const days = Number(out.settings.archiveDays);
+  out.settings.archiveDays = Number.isFinite(days) && days >= 0 ? Math.round(days) : 14;
+  out.categories.forEach(c => { if (!AREAS.includes(c.area)) c.area = 'private'; c.color = String(c.color || PALETTE[0]).toUpperCase(); c.name = String(c.name || ''); });
+  out.tasks.forEach(tk => {
+    if (!COLS.includes(tk.status)) tk.status = 'open';
+    tk.priority = [1, 2, 3].includes(Number(tk.priority)) ? Number(tk.priority) : 2;
+    if (typeof tk.order !== 'number') tk.order = -(tk.created || 0);
+    if (!AREAS.includes(tk.area)) tk.area = 'private';
+    if (tk.due == null) tk.due = '';
+    if (tk.note == null) tk.note = '';
+    tk.repeat = normalizeRepeat(tk.repeat);
+    if (tk.showFrom == null) tk.showFrom = '';
+    if (tk.spawnedNext == null) tk.spawnedNext = false;
+  });
+  out.customers.forEach(c => { ['name', 'phone', 'email', 'contact'].forEach(k => { if (c[k] == null) c[k] = ''; }); });
+  return out;
+}
+function isValidData(data) {
+  return data && typeof data === 'object' && data.app === 'task-organizer' && Array.isArray(data.tasks);
+}
+let state = defaultState();
+try {
+  const raw = localStorage.getItem(LS_KEY);
+  if (raw) state = normalizeState(JSON.parse(raw));
+} catch (e) { /* defekte Daten ignorieren */ }
+
+/* ---------- Hilfsfunktionen ---------- */
+const $ = id => document.getElementById(id);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const pad = n => String(n).padStart(2, '0');
+const fmtDate = ts => { const d = new Date(ts); return pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear(); };
+const fmtTime = ts => { const d = new Date(ts); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+const isoDate = ts => { const d = new Date(ts); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+const fmtIso = s => s ? s.slice(8, 10) + '.' + s.slice(5, 7) + '.' + s.slice(0, 4) : '';
+const todayIso = () => isoDate(Date.now());
+const isoToDate = s => new Date(Number(s.slice(0, 4)), Number(s.slice(5, 7)) - 1, Number(s.slice(8, 10)));
+const addDaysIso = (s, n) => { const d = isoToDate(s); d.setDate(d.getDate() + n); return isoDate(d.getTime()); };
+function addInterval(s, r) {
+  if (r.unit === 'day') return addDaysIso(s, r.every);
+  if (r.unit === 'week') return addDaysIso(s, 7 * r.every);
+  const d = isoToDate(s);
+  let y = d.getFullYear(), m = d.getMonth();
+  if (r.unit === 'month') m += r.every; else y += r.every;
+  y += Math.floor(m / 12); m = ((m % 12) + 12) % 12;
+  const last = new Date(y, m + 1, 0).getDate();
+  const day = Math.min(r.anchor || d.getDate(), last);
+  return isoDate(new Date(y, m, day).getTime());
+}
+function nextDue(tk, r, doneTs) {
+  const today = isoDate(doneTs || Date.now());
+  if (r.mode === 'done') return addInterval(today, r);
+  let next = addInterval(tk.due || isoDate(tk.created || Date.now()), r);
+  let guard = 0;
+  while (next <= today && guard++ < 1000) next = addInterval(next, r);
+  return next;
+}
+const showFromFor = (due, r) => (r.unit === 'day' && r.every === 1) ? due : addDaysIso(due, -2);
+const isHidden = tk => !!tk.showFrom && tk.showFrom > todayIso();
+function presetKey(r) {
+  if (!r) return 'none';
+  for (const k in REP_PRESETS) if (REP_PRESETS[k][0] === r.unit && REP_PRESETS[k][1] === r.every) return k;
+  return 'custom';
+}
+function repeatLabel(r) {
+  const k = presetKey(r);
+  if (k === 'none') return '';
+  if (k !== 'custom') return t('rl_' + k);
+  return t('rlCustom', { n: r.every, unit: t('unit_' + r.unit) });
+}
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function t(key, vars) {
+  const lang = I18N[state.settings.lang] ? state.settings.lang : 'de';
+  let s = I18N[lang][key];
+  if (s == null) s = I18N.de[key] != null ? I18N.de[key] : key;
+  if (vars) for (const k in vars) s = s.split('{' + k + '}').join(vars[k]);
+  return s;
+}
+let toastTimer = null;
+function toast(msg) {
+  const el = $('toast'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+const curArea = () => state.settings.area;
+const catById = id => id ? state.categories.find(c => c.id === id) || null : null;
+const custById = id => id ? state.customers.find(c => c.id === id) || null : null;
+const catsOf = a => state.categories.filter(c => c.area === a).sort((x, y) => x.name.localeCompare(y.name, 'de'));
+const customersSorted = () => state.customers.slice().sort((x, y) => String(x.name).localeCompare(String(y.name), 'de'));
+const prioLabel = p => t('prio' + p);
+const countTasksWith = (field, id) => state.tasks.filter(tk => tk[field] === id).length;
+function nextColor(a) {
+  const used = new Set(catsOf(a).map(c => c.color));
+  const free = PALETTE.find(c => !used.has(c));
+  return free || PALETTE[catsOf(a).length % PALETTE.length];
+}
+function findOrCreateCategory(a, name, color) {
+  name = String(name || '').trim(); if (!name) return null;
+  const ex = state.categories.find(c => c.area === a && c.name.trim().toLowerCase() === name.toLowerCase());
+  if (ex) { if (color && color !== ex.color) ex.color = color; return ex.id; }
+  const c = { id: uid(), area: a, name, color: color || nextColor(a) };
+  state.categories.push(c); return c.id;
+}
+function findCustomer(name) {
+  const nm = String(name || '').trim().toLowerCase();
+  return nm ? state.customers.find(c => String(c.name || '').trim().toLowerCase() === nm) || null : null;
+}
+function findOrCreateCustomer(name, phone, email, contact) {
+  name = String(name || '').trim(); if (!name) return null;
+  const ex = findCustomer(name);
+  if (ex) { ex.phone = phone; ex.email = email; ex.contact = contact; return ex.id; }
+  const c = { id: uid(), name, phone, email, contact };
+  state.customers.push(c); return c.id;
+}
+
+/* ---------- Speichern: Browser + Datei ---------- */
+const fsSupported = 'showSaveFilePicker' in window && 'showOpenFilePicker' in window;
+let fileHandle = null, filePermission = 'none', saveState = 'idle', lastSavedAt = 0, writeTimer = null, writeChain = Promise.resolve();
+let bannerDismissed = false;
+
+function idb() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('to-db', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+}
+async function idbGet(k) { const db = await idb(); return new Promise((res, rej) => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+async function idbSet(k, v) { const db = await idb(); return new Promise((res, rej) => { const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); }); }
+
+function persist() {
+  state.savedAt = Date.now();
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* Speicher voll */ }
+  if (fileHandle && filePermission === 'granted') {
+    clearTimeout(writeTimer);
+    saveState = 'saving'; updateStatus();
+    writeTimer = setTimeout(writeFile, 400);
+  } else {
+    lastSavedAt = state.savedAt; updateStatus();
+  }
+}
+let persistTimer = null;
+function persistSoon() { clearTimeout(persistTimer); persistTimer = setTimeout(persist, 500); }
+function writeFile() {
+  writeChain = writeChain.then(async () => {
+    if (!fileHandle) return;
+    try {
+      const w = await fileHandle.createWritable();
+      await w.write(JSON.stringify(state, null, 2));
+      await w.close();
+      saveState = 'saved'; lastSavedAt = Date.now();
+    } catch (e) {
+      console.error(e); saveState = 'error';
+    }
+    updateStatus();
+  });
+  return writeChain;
+}
+async function readHandle(h) {
+  const f = await h.getFile();
+  const text = await f.text();
+  if (!text.trim()) return null;
+  const data = JSON.parse(text);
+  return isValidData(data) ? data : undefined;
+}
+async function syncFromFile() {
+  try {
+    const data = await readHandle(fileHandle);
+    if (data === undefined) { toast(t('importBad')); return; }
+    if (data && (data.savedAt || 0) > (state.savedAt || 0)) {
+      state = normalizeState(data);
+      try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { }
+      applyAll();
+      saveState = 'saved'; lastSavedAt = state.savedAt; updateStatus();
+    } else {
+      await writeFile();
+    }
+  } catch (e) { console.error(e); saveState = 'error'; updateStatus(); toast(t('fileError')); }
+}
+async function initFile() {
+  if (!fsSupported) { updateStatus(); return; }
+  try {
+    const h = await idbGet('fileHandle');
+    if (h) {
+      fileHandle = h;
+      filePermission = await h.queryPermission({ mode: 'readwrite' });
+      if (filePermission === 'granted') await syncFromFile();
+    }
+  } catch (e) { console.error(e); }
+  updateStatus();
+}
+async function reconnectFile() {
+  if (!fileHandle) return;
+  try {
+    filePermission = await fileHandle.requestPermission({ mode: 'readwrite' });
+    if (filePermission === 'granted') { await syncFromFile(); runAutoArchive(); toast(t('fileConnected')); }
+  } catch (e) { console.error(e); toast(t('fileError')); }
+  updateStatus(); if ($('dlgSettings').open) renderSettings();
+}
+const JSON_TYPES = [{ description: 'Task Organizer (JSON)', accept: { 'application/json': ['.json'] } }];
+async function newFile() {
+  try {
+    const h = await window.showSaveFilePicker({ suggestedName: 'task-organizer-daten.json', types: JSON_TYPES });
+    fileHandle = h; filePermission = 'granted';
+    await idbSet('fileHandle', h);
+    state.savedAt = Date.now();
+    await writeFile();
+    toast(t('newFileOk'));
+  } catch (e) { if (e.name !== 'AbortError') { console.error(e); toast(t('fileError')); } }
+  updateStatus(); if ($('dlgSettings').open) renderSettings();
+}
+async function openFile() {
+  try {
+    const [h] = await window.showOpenFilePicker({ types: JSON_TYPES, multiple: false });
+    const perm = await h.requestPermission({ mode: 'readwrite' });
+    if (perm !== 'granted') { toast(t('fileError')); return; }
+    const data = await readHandle(h);
+    if (data === undefined) { toast(t('importBad')); return; }
+    if (data) {
+      if (state.tasks.length || state.categories.length || state.customers.length) {
+        const ok = await confirmDlg(t('importConfirmTitle'), t('importConfirmText'));
+        if (!ok) return;
+      }
+      state = normalizeState(data);
+    }
+    fileHandle = h; filePermission = 'granted';
+    await idbSet('fileHandle', h);
+    applyAll(); persist(); runAutoArchive();
+    toast(t('fileConnected'));
+  } catch (e) { if (e.name !== 'AbortError') { console.error(e); toast(t('fileError')); } }
+  updateStatus(); if ($('dlgSettings').open) renderSettings();
+}
+function exportBackup() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  download(blob, 'task-organizer-sicherung_' + isoDate(Date.now()) + '.json');
+}
+function download(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+$('fileImport').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (!isValidData(data)) { toast(t('importBad')); return; }
+    const ok = await confirmDlg(t('importConfirmTitle'), t('importConfirmText'));
+    if (!ok) return;
+    state = normalizeState(data);
+    applyAll(); persist(); toast(t('importOk'));
+    if ($('dlgSettings').open) renderSettings();
+  } catch (err) { toast(t('importBad')); }
+});
+
+function updateStatus() {
+  const el = $('saveStatus');
+  el.className = 'status'; el.title = t('statusTip');
+  let txt;
+  if (!fsSupported) { txt = t('statusNoFs'); el.classList.add('warn'); }
+  else if (!fileHandle) { txt = t('statusBrowserOnly'); el.classList.add('warn'); }
+  else if (filePermission !== 'granted') { txt = t('statusReconnect'); el.classList.add('warn'); }
+  else if (saveState === 'saving') { txt = t('statusSaving'); }
+  else if (saveState === 'error') { txt = t('statusError'); el.classList.add('err'); }
+  else { txt = t('statusSaved', { time: lastSavedAt ? fmtTime(lastSavedAt) : '–' }); el.classList.add('ok'); }
+  el.textContent = txt;
+  renderBanner();
+}
+function renderBanner() {
+  const b = $('banner');
+  if (fsSupported && fileHandle && filePermission !== 'granted') {
+    b.innerHTML = '<span>' + esc(t('bannerReconnect', { name: fileHandle.name })) + '</span><button id="bnReconnect" class="primary">' + esc(t('btnReconnect')) + '</button>';
+    b.classList.remove('hidden');
+    $('bnReconnect').onclick = reconnectFile;
+  } else if (fsSupported && !fileHandle && !bannerDismissed) {
+    b.innerHTML = '<span>' + esc(t('bannerNoFile')) + '</span><button id="bnChoose">' + esc(t('bannerChoose')) + '</button><button id="bnLater" class="ghost">' + esc(t('bannerLater')) + '</button>';
+    b.classList.remove('hidden');
+    $('bnChoose').onclick = () => openSettings('general');
+    $('bnLater').onclick = () => { bannerDismissed = true; renderBanner(); };
+  } else {
+    b.classList.add('hidden'); b.innerHTML = '';
+  }
+}
+
+/* ---------- Theme & Sprache ---------- */
+const mqDark = window.matchMedia('(prefers-color-scheme: dark)');
+function effectiveTheme() { const th = state.settings.theme; return th === 'system' ? (mqDark.matches ? 'dark' : 'light') : th; }
+function applyTheme() {
+  const th = effectiveTheme();
+  document.documentElement.setAttribute('data-theme', th);
+  $('btnTheme').innerHTML = icon(th === 'dark' ? 'sun' : 'moon');
+  renderFooter();
+}
+mqDark.addEventListener('change', () => { if (state.settings.theme === 'system') applyTheme(); });
+function renderFooter() {
+  const logo = (LOGO_LIGHT && LOGO_DARK) ? '<img class="foot-logo" alt="" src="' + (effectiveTheme() === 'dark' ? LOGO_DARK : LOGO_LIGHT) + '">' : '';
+  $('appFooter').innerHTML = logo + '<a href="' + REPO_URL + '" target="_blank" rel="noopener">' + esc(APP_NAME) + '</a> · ' + esc(t('version', { v: APP_VERSION }))
+    + ' · by <a href="' + PROFILE_URL + '" target="_blank" rel="noopener">' + esc(APP_AUTHOR) + '</a> · ' + RELEASE_YEAR;
+}
+function footerText() { return APP_NAME + ' · ' + t('version', { v: APP_VERSION }) + ' · by ' + APP_AUTHOR + ' · ' + RELEASE_YEAR; }
+function applyI18n() {
+  document.documentElement.lang = state.settings.lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); el.setAttribute('aria-label', t(el.dataset.i18nTitle)); });
+  document.querySelectorAll('.dlg-head [data-close]').forEach(el => { el.innerHTML = icon('x'); });
+  $('search').placeholder = t('searchPh');
+  $('archSearch').placeholder = t('archSearchPh');
+  $('edTitle').placeholder = t('titlePh');
+  $('edCust').placeholder = t('custPh');
+  $('edCat').placeholder = t('catPh');
+  $('edNote').placeholder = t('notePh');
+  $('edDueClear').innerHTML = icon('x');
+  $('edPrio').querySelectorAll('button').forEach(b => { b.textContent = b.dataset.p + ' · ' + prioLabel(b.dataset.p); });
+  $('edStatus').innerHTML = COLS.map(c => '<button type="button" data-s="' + c + '">' + esc(t('col_' + c)) + '</button>').join('');
+  $('edRepeat').innerHTML = ['none', 'd1', 'w1', 'w2', 'm1', 'y1', 'custom'].map(k => '<button type="button" data-r="' + k + '">' + esc(t('rep_' + k)) + '</button>').join('');
+  $('edRepUnit').innerHTML = REP_UNITS.map(u => '<option value="' + u + '">' + esc(t('unit_' + u)) + '</option>').join('');
+  $('edRepMode').innerHTML = ['done', 'plan'].map(m => '<button type="button" data-m="' + m + '">' + esc(t('repMode_' + m)) + '</button>').join('');
+  $('btnCustomers').innerHTML = icon('users') + esc(t('customers'));
+  $('custBack').innerHTML = icon('back'); $('custBack').title = t('custBack'); $('custBack').setAttribute('aria-label', t('custBack'));
+  if ($('dlgEditor').open) renderRep();
+  renderFooter();
+  $('btnNew').innerHTML = icon('plus') + esc(t('newTask'));
+  $('btnArchive').innerHTML = icon('archive') + esc(t('archive'));
+  $('btnHelp').innerHTML = icon('help'); $('btnHelp').title = t('help'); $('btnHelp').setAttribute('aria-label', t('help'));
+  $('btnSettings').innerHTML = icon('settings'); $('btnSettings').title = t('settings'); $('btnSettings').setAttribute('aria-label', t('settings'));
+  $('btnTheme').title = t('toggleTheme'); $('btnTheme').setAttribute('aria-label', t('toggleTheme'));
+  $('btnLang').textContent = state.settings.lang === 'de' ? 'DE' : 'EN';
+  $('btnLang').title = t('language');
+  $('edDelete').innerHTML = icon('trash') + esc(t('btnDelete'));
+  $('archCsv').innerHTML = icon('download') + esc(t('archExportCsv'));
+  $('setVersion').textContent = footerText();
+  $('helpVersion').textContent = footerText();
+  $('logo').innerHTML = icon('checklist');
+  $('searchIcon').innerHTML = icon('search');
+}
+function applyAll() { applyTheme(); applyI18n(); renderBoard(); updateStatus(); }
+
+/* ---------- Bereich ---------- */
+let query = '', filterCat = '', filterCust = '';
+function setArea(a) {
+  if (!AREAS.includes(a) || a === curArea()) return;
+  state.settings.area = a; filterCat = ''; filterCust = '';
+  closeMenu(); renderBoard(); persist();
+}
+$('areabar').addEventListener('click', e => { const b = e.target.closest('button[data-area]'); if (b) setArea(b.dataset.area); });
+
+/* ---------- Board ---------- */
+function matches(tk, q) {
+  if (!q) return true;
+  const c = catById(tk.categoryId), k = custById(tk.customerId);
+  return [tk.title, tk.note, c && c.name, k && k.name, k && k.phone, k && k.email, k && k.contact].some(v => String(v || '').toLowerCase().includes(q));
+}
+function dueCmp(a, b) {
+  if (a.due && b.due) return a.due < b.due ? -1 : a.due > b.due ? 1 : 0;
+  if (a.due) return -1; if (b.due) return 1; return 0;
+}
+function colorRank(tk) {
+  const c = catById(tk.categoryId);
+  if (!c) return [9999, ''];
+  const i = PALETTE.indexOf(c.color);
+  return [i < 0 ? 500 : i, c.name.toLowerCase()];
+}
+const SORT_FN = {
+  prio: (a, b) => a.priority - b.priority || dueCmp(a, b) || a.created - b.created,
+  created: (a, b) => b.created - a.created,
+  due: (a, b) => dueCmp(a, b) || a.priority - b.priority || a.created - b.created,
+  color: (a, b) => { const x = colorRank(a), y = colorRank(b); return x[0] - y[0] || x[1].localeCompare(y[1], 'de') || a.priority - b.priority || a.created - b.created; },
+  manual: (a, b) => a.order - b.order || b.created - a.created
+};
+const sortTasks = (list, mode) => list.sort(SORT_FN[mode] || SORT_FN.prio);
+function colTasks(a, col, filtered) {
+  const q = query.trim().toLowerCase();
+  return state.tasks.filter(tk => !tk.archived && tk.area === a && tk.status === col
+    && (!filtered || (!isHidden(tk) && matches(tk, q) && (!filterCat || (filterCat === '-' ? !tk.categoryId : tk.categoryId === filterCat)) && (!filterCust || tk.customerId === filterCust))));
+}
+function hiddenTasks(a) {
+  return state.tasks.filter(tk => !tk.archived && tk.area === a && tk.status !== 'done' && isHidden(tk)).sort((x, y) => x.showFrom < y.showFrom ? -1 : x.showFrom > y.showFrom ? 1 : 0);
+}
+let showUpcoming = false;
+function minOrder(a, col, exceptId) {
+  const l = state.tasks.filter(tk => !tk.archived && tk.area === a && tk.status === col && tk.id !== exceptId);
+  return l.length ? Math.min(...l.map(tk => tk.order)) : 0;
+}
+function dueInfo(tk) {
+  if (!tk.due) return null;
+  const today = isoDate(Date.now());
+  if (tk.status === 'done') return { cls: '', txt: t('dueOn', { date: fmtIso(tk.due) }) };
+  if (tk.due < today) return { cls: 'over', txt: t('overdue', { date: fmtIso(tk.due) }) };
+  if (tk.due === today) return { cls: 'today', txt: t('dueToday') };
+  return { cls: '', txt: t('dueOn', { date: fmtIso(tk.due) }) };
+}
+function cardHtml(tk) {
+  const c = catById(tk.categoryId), k = custById(tk.customerId);
+  let pills = '<span class="pill' + (tk.priority === 1 ? ' p1' : '') + '" title="' + esc(prioLabel(tk.priority)) + '">P' + tk.priority + '</span>';
+  if (c) pills += '<span class="pill"><i class="dot" style="background:' + esc(c.color) + '"></i>' + esc(c.name) + '</span>';
+  if (k) pills += '<button type="button" class="pill cust" data-act="customer" title="' + esc([k.contact, k.phone, k.email].filter(Boolean).join(' · ')) + '">' + icon('user') + esc(k.name) + '</button>';
+  const di = dueInfo(tk);
+  if (di) pills += '<span class="pill ' + di.cls + '">' + icon('calendar') + esc(di.txt) + '</span>';
+  if (tk.repeat) pills += '<span class="pill rep">' + icon('repeat') + esc(repeatLabel(tk.repeat)) + '</span>';
+  if (isHidden(tk)) pills += '<span class="pill">' + icon('clock') + esc(t('visibleFrom', { date: fmtIso(tk.showFrom) })) + '</span>';
+  if (tk.status === 'done' && tk.doneAt) pills += '<span class="pill">' + icon('check') + esc(t('doneOn', { date: fmtDate(tk.doneAt) })) + '</span>';
+  const actions = '<button class="ghost" data-act="move" title="' + esc(t('btnMove')) + '" aria-label="' + esc(t('btnMove')) + '">' + icon('move') + '</button>'
+    + '<button class="ghost" data-act="delete" title="' + esc(t('btnDelete')) + '" aria-label="' + esc(t('btnDelete')) + '">' + icon('trash') + '</button>';
+  return '<div class="card' + (tk.status === 'done' ? ' is-done' : '') + (isHidden(tk) ? ' upcoming' : '') + '" draggable="true" data-id="' + tk.id + '" tabindex="0" style="border-left-color:' + (c ? esc(c.color) : 'var(--border-strong)') + '">'
+    + '<div class="card-top"><div class="card-title">' + esc(tk.title) + '</div><div class="card-actions">' + actions + '</div></div>'
+    + (tk.note ? '<div class="card-note" title="' + esc(t('hasNote')) + '">' + esc(tk.note) + '</div>' : '')
+    + '<div class="pills">' + pills + '</div>'
+    + (tk.status === 'done' ? '<div class="card-foot"><button data-act="archive">' + icon('archive') + esc(t('btnArchive')) + '</button></div>' : '')
+    + '</div>';
+}
+function renderAreabar() {
+  $('areabar').querySelectorAll('button').forEach(b => {
+    const a = b.dataset.area;
+    const n = state.tasks.filter(tk => !tk.archived && tk.area === a && tk.status !== 'done').length;
+    b.classList.toggle('on', a === curArea());
+    b.innerHTML = icon(a === 'private' ? 'checklist' : 'users', 16) + ' ' + esc(t('area_' + a)) + ' <span class="count">' + n + '</span>';
+  });
+}
+function renderFilters() {
+  const a = curArea();
+  const cats = catsOf(a);
+  if (filterCat && filterCat !== '-' && !cats.some(c => c.id === filterCat)) filterCat = '';
+  $('filterCat').innerHTML = '<option value="">' + esc(t('allCats')) + '</option>' + cats.map(c => '<option value="' + c.id + '">' + esc(c.name) + '</option>').join('') + '<option value="-">' + esc(t('noCat')) + '</option>';
+  $('filterCat').value = filterCat;
+  const isBiz = a === 'business';
+  $('filterCust').classList.toggle('hidden', !isBiz);
+  $('btnCustomers').classList.toggle('hidden', !isBiz);
+  if (isBiz) {
+    const custs = customersSorted();
+    if (filterCust && !custs.some(c => c.id === filterCust)) filterCust = '';
+    $('filterCust').innerHTML = '<option value="">' + esc(t('allCusts')) + '</option>' + custs.map(c => '<option value="' + c.id + '">' + esc(c.name) + '</option>').join('');
+    $('filterCust').value = filterCust;
+  } else filterCust = '';
+}
+function renderBoard() {
+  const a = curArea();
+  renderAreabar(); renderFilters();
+  const days = state.settings.archiveDays;
+  $('board').innerHTML = COLS.map(col => {
+    const mode = state.settings.sort[a][col];
+    const list = sortTasks(colTasks(a, col, true), mode);
+    const emptyTxt = col === 'done' ? (days > 0 ? t('empty_done', { n: days }) : t('empty_done_off')) : t('empty_' + col);
+    const sel = '<select data-sort="' + col + '" title="' + esc(t('sortTitle')) + '" aria-label="' + esc(t('sortTitle')) + '">' + SORTS.map(s => '<option value="' + s + '"' + (s === mode ? ' selected' : '') + '>' + esc(t('sort_' + s)) + '</option>').join('') + '</select>';
+    let upcoming = '';
+    if (col === 'planned') {
+      const hid = hiddenTasks(a);
+      if (hid.length) upcoming = '<button type="button" class="upcoming-toggle" data-upcoming>' + esc(showUpcoming ? t('upcomingHide') : t('upcomingShow', { n: hid.length })) + '</button>'
+        + (showUpcoming ? '<div class="col-body" data-col="planned" style="flex:none;margin-top:8px">' + hid.map(cardHtml).join('') + '</div>' : '');
+    }
+    const tools = (col === 'done' && list.length >= 2) ? '<div class="col-tools"><button data-archive-all>' + icon('archive', 15) + esc(t('archiveAll')) + '</button></div>' : '';
+    return '<section class="col"' + (col !== 'done' ? ' data-newcol="' + col + '"' : '') + '><div class="col-head"><span class="col-dot" style="background:' + COL_COLORS[col] + '"></span><span>' + esc(t('col_' + col)) + '</span><span class="count">' + list.length + '</span>' + sel + '</div>'
+      + tools + '<div class="col-body" data-col="' + col + '">' + (list.length ? list.map(cardHtml).join('') : '<div class="empty">' + esc(emptyTxt) + '</div>') + '</div>' + upcoming + '</section>';
+  }).join('');
+}
+$('search').addEventListener('input', e => { query = e.target.value; renderBoard(); });
+$('filterCat').addEventListener('change', e => { filterCat = e.target.value; renderBoard(); });
+$('filterCust').addEventListener('change', e => { filterCust = e.target.value; renderBoard(); });
+
+$('board').addEventListener('change', e => {
+  const s = e.target.closest('select[data-sort]'); if (!s) return;
+  state.settings.sort[curArea()][s.dataset.sort] = s.value;
+  renderBoard(); persist();
+});
+$('board').addEventListener('click', e => {
+  if (e.target.closest('select')) return;
+  if (e.target.closest('[data-upcoming]')) { showUpcoming = !showUpcoming; renderBoard(); return; }
+  if (e.target.closest('[data-archive-all]')) {
+    archiveTasks(colTasks(curArea(), 'done', true)); return;
+  }
+  const card = e.target.closest('.card'); if (!card) return;
+  const tk = state.tasks.find(x => x.id === card.dataset.id); if (!tk) return;
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) { openEditor(tk); return; }
+  const act = btn.dataset.act;
+  if (act === 'customer') { openCustomer(tk.customerId); return; }
+  if (act === 'move') openMoveMenu(btn, tk);
+  if (act === 'delete') deleteTask(tk);
+  if (act === 'archive') archiveTasks([tk]);
+});
+function dblTarget(e) {
+  if (e.target.closest('.card, .col-head, .col-tools, button, select, input, a')) return null;
+  const col = e.target.closest('.col[data-newcol]');
+  return col ? col.dataset.newcol : null;
+}
+$('board').addEventListener('mousedown', e => { if (e.detail > 1 && dblTarget(e)) e.preventDefault(); });
+$('board').addEventListener('dblclick', e => {
+  const col = dblTarget(e); if (!col) return;
+  e.preventDefault();
+  if (window.getSelection) window.getSelection().removeAllRanges();
+  openEditor(null, col);
+});
+$('board').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.classList.contains('card')) {
+    const tk = state.tasks.find(x => x.id === e.target.dataset.id); if (tk) openEditor(tk);
+  }
+});
+
+/* ---------- Status ändern / verschieben ---------- */
+function setStatus(tk, s) {
+  const becameDone = s === 'done' && tk.status !== 'done';
+  if (becameDone) tk.doneAt = Date.now();
+  if (s !== 'done') tk.doneAt = null;
+  tk.status = s;
+  if (s === 'done') { tk.showFrom = ''; spawnNext(tk); }
+}
+function spawnNext(tk) {
+  if (!tk.repeat || tk.spawnedNext) return null;
+  const r = tk.repeat, due = nextDue(tk, r, tk.doneAt);
+  tk.seriesId = tk.seriesId || tk.id; tk.spawnedNext = true;
+  const n = {
+    id: uid(), area: tk.area, created: Date.now(), status: 'planned', order: minOrder(tk.area, 'planned') - 1, doneAt: null, archived: false, archivedAt: null,
+    title: tk.title, priority: tk.priority, categoryId: tk.categoryId, customerId: tk.customerId, note: tk.note,
+    due, repeat: { ...r }, seriesId: tk.seriesId, spawnedNext: false, showFrom: showFromFor(due, r)
+  };
+  if (n.showFrom <= todayIso()) n.showFrom = '';
+  state.tasks.push(n);
+  toast(t('spawned', { date: fmtIso(due) }));
+  return n;
+}
+function moveTask(tk, target, beforeId, positional) {
+  const a = tk.area;
+  const same = tk.status === target;
+  if (same && !positional) return;
+  let mode = state.settings.sort[a][target];
+  if (positional && same && mode !== 'manual') {
+    sortTasks(colTasks(a, target, false), mode).forEach((x, i) => { x.order = i; });
+    state.settings.sort[a][target] = 'manual'; mode = 'manual';
+    toast(t('switchedManual', { col: t('col_' + target) }));
+  }
+  tk.showFrom = '';
+  setStatus(tk, target);
+  if (positional && mode === 'manual') {
+    const list = sortTasks(colTasks(a, target, false).filter(x => x.id !== tk.id), 'manual');
+    let idx = beforeId ? list.findIndex(x => x.id === beforeId) : -1;
+    if (idx < 0) idx = list.length;
+    list.splice(idx, 0, tk);
+    list.forEach((x, i) => { x.order = i; });
+  } else {
+    tk.order = minOrder(a, target, tk.id) - 1;
+  }
+  if (!same && !positional && !(target === 'done' && tk.repeat)) toast(t('moved', { col: t('col_' + target) }));
+  renderBoard(); persist();
+}
+
+/* Menü «Verschieben nach …» */
+let menuEl = null;
+function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } }
+function openMoveMenu(btn, tk) {
+  closeMenu();
+  const m = document.createElement('div');
+  m.className = 'menu'; m.setAttribute('role', 'menu');
+  m.innerHTML = '<div class="menu-h">' + esc(t('moveTo')) + '</div>'
+    + COLS.map(c => '<button type="button" role="menuitem" data-to="' + c + '"' + (c === tk.status ? ' disabled' : '') + '><span class="col-dot" style="background:' + COL_COLORS[c] + '"></span>' + esc(t('col_' + c)) + '</button>').join('')
+    + (tk.status === 'done' ? '<hr><button type="button" role="menuitem" data-to="archive">' + icon('archive', 15) + esc(t('btnArchive')) + '</button>' : '');
+  document.body.appendChild(m); menuEl = m;
+  const r = btn.getBoundingClientRect();
+  const w = m.offsetWidth, h = m.offsetHeight;
+  let left = Math.min(r.right - w, window.innerWidth - w - 8); left = Math.max(8, left);
+  let top = r.bottom + 4; if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 4);
+  m.style.left = left + 'px'; m.style.top = top + 'px';
+  m.addEventListener('click', e => {
+    const b = e.target.closest('button[data-to]'); if (!b || b.disabled) return;
+    closeMenu();
+    if (b.dataset.to === 'archive') archiveTasks([tk]); else moveTask(tk, b.dataset.to, null, false);
+  });
+  const first = m.querySelector('button:not([disabled])'); if (first) first.focus();
+}
+document.addEventListener('mousedown', e => { if (menuEl && !menuEl.contains(e.target) && !e.target.closest('[data-act="move"]')) closeMenu(); });
+window.addEventListener('resize', closeMenu);
+window.addEventListener('scroll', closeMenu, true);
+
+/* Drag & Drop */
+let dragId = null;
+function clearDropMarks() {
+  document.querySelectorAll('.drop-before').forEach(c => c.classList.remove('drop-before'));
+  document.querySelectorAll('.col-body.over').forEach(c => c.classList.remove('over', 'drop-end'));
+}
+function cardBefore(col, y) {
+  return Array.from(col.querySelectorAll('.card:not(.dragging)')).find(c => { const r = c.getBoundingClientRect(); return y < r.top + r.height / 2; }) || null;
+}
+document.addEventListener('dragstart', e => {
+  const card = e.target.closest && e.target.closest('.card'); if (!card) return;
+  closeMenu();
+  dragId = card.dataset.id; card.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragId);
+});
+document.addEventListener('dragend', () => { document.querySelectorAll('.dragging').forEach(c => c.classList.remove('dragging')); clearDropMarks(); dragId = null; });
+$('board').addEventListener('dragover', e => {
+  const col = e.target.closest('.col-body'); if (!col || !dragId) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  clearDropMarks();
+  col.classList.add('over');
+  const b = cardBefore(col, e.clientY);
+  if (b) b.classList.add('drop-before'); else if (col.querySelector('.card:not(.dragging)')) col.classList.add('drop-end');
+});
+$('board').addEventListener('dragleave', e => {
+  const col = e.target.closest('.col-body'); if (!col) return;
+  if (!col.contains(e.relatedTarget)) { col.classList.remove('over', 'drop-end'); col.querySelectorAll('.drop-before').forEach(c => c.classList.remove('drop-before')); }
+});
+$('board').addEventListener('drop', e => {
+  const col = e.target.closest('.col-body'); if (!col || !dragId) return;
+  e.preventDefault();
+  const before = cardBefore(col, e.clientY);
+  clearDropMarks();
+  const tk = state.tasks.find(x => x.id === dragId); if (!tk) return;
+  moveTask(tk, col.dataset.col, before ? before.dataset.id : null, true);
+});
+
+/* ---------- Archivieren / Löschen ---------- */
+function archiveTasks(list, auto) {
+  if (!list.length) return;
+  const now = Date.now();
+  list.forEach(x => { x.archived = true; x.archivedAt = now; });
+  renderBoard(); persist();
+  toast(auto ? t('autoArchivedN', { n: list.length }) : list.length === 1 ? t('archivedOne') : t('archivedN', { n: list.length }));
+}
+function runAutoArchive() {
+  const days = Number(state.settings.archiveDays) || 0;
+  if (days <= 0) return;
+  const limit = Date.now() - days * 864e5;
+  const list = state.tasks.filter(x => !x.archived && x.status === 'done' && x.doneAt && x.doneAt < limit);
+  if (list.length) archiveTasks(list, true);
+}
+async function deleteTask(tk) {
+  if (!await confirmDlg(t('confirmDeleteTitle'), t('confirmDeleteText'), true)) return false;
+  state.tasks = state.tasks.filter(x => x.id !== tk.id);
+  renderBoard(); persist();
+  if ($('dlgArchive').open) renderArchive();
+  if ($('dlgCustomer').open) renderCustomer();
+  return true;
+}
+
+/* ---------- Bestätigungs-Dialoge ---------- */
+function confirmDlg(title, text, danger) {
+  return new Promise(res => {
+    const d = $('dlgConfirm');
+    $('cfTitle').textContent = title; $('cfText').textContent = text;
+    $('cfCancel').classList.remove('hidden');
+    $('cfOk').textContent = danger ? t('btnDelete') : 'OK';
+    $('cfOk').className = 'primary';
+    $('cfOk').style.cssText = danger ? 'background:var(--danger);border-color:var(--danger);color:#fff' : '';
+    const finish = v => { d.close(); $('cfOk').onclick = null; $('cfCancel').onclick = null; d.oncancel = null; res(v); };
+    $('cfOk').onclick = () => finish(true);
+    $('cfCancel').onclick = () => finish(false);
+    d.oncancel = () => { $('cfOk').onclick = null; res(false); };
+    d.showModal(); $('cfOk').focus();
+  });
+}
+
+/* ---------- Autovervollständigung ---------- */
+function makeAc(input, box, source, render, pick) {
+  let items = [], sel = -1;
+  const hide = () => { box.classList.add('hidden'); items = []; sel = -1; };
+  const draw = () => {
+    if (!items.length) { hide(); return; }
+    box.innerHTML = items.map((x, i) => '<div data-i="' + i + '" class="' + (i === sel ? 'sel' : '') + '">' + render(x) + '</div>').join('');
+    box.classList.remove('hidden');
+  };
+  const update = () => { items = source(input.value.trim().toLowerCase()); sel = items.length ? 0 : -1; draw(); };
+  input.addEventListener('input', update);
+  input.addEventListener('focus', update);
+  input.addEventListener('keydown', e => {
+    if (box.classList.contains('hidden')) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.min(sel + 1, items.length - 1); draw(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(sel - 1, 0); draw(); }
+    else if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey && sel >= 0) { e.preventDefault(); const x = items[sel]; hide(); pick(x); }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); hide(); }
+    else if (e.key === 'Tab') hide();
+  });
+  box.addEventListener('mousedown', e => { const d = e.target.closest('[data-i]'); if (d) { e.preventDefault(); const x = items[Number(d.dataset.i)]; hide(); pick(x); } });
+  input.addEventListener('blur', () => setTimeout(hide, 150));
+  return { hide };
+}
+
+/* ---------- Erfassung ---------- */
+let edTask = null, edArea = 'private', edPrio = 2, edStatus = 'open', edColor = null, edColorTouched = false, edRep = 'none', edRepMode = 'done';
+function editorRepeat() {
+  if (edRep === 'none') return null;
+  let unit, every;
+  if (edRep === 'custom') { unit = $('edRepUnit').value; every = Math.round(Number($('edRepN').value)); if (!(every >= 1 && every <= 365)) return undefined; }
+  else { unit = REP_PRESETS[edRep][0]; every = REP_PRESETS[edRep][1]; }
+  const base = $('edDue').value || isoDate(edTask ? edTask.created : Date.now());
+  return { unit, every, mode: edRepMode, anchor: Number(base.slice(8, 10)) };
+}
+function renderRep() {
+  $('edRepeat').querySelectorAll('button').forEach(b => { b.className = b.dataset.r === edRep ? 'on' : ''; });
+  $('edRepMode').querySelectorAll('button').forEach(b => { b.className = b.dataset.m === edRepMode ? 'on' : ''; });
+  $('edRepBox').classList.toggle('hidden', edRep === 'none');
+  $('edRepCustom').classList.toggle('hidden', edRep !== 'custom');
+  const r = editorRepeat();
+  if (!r) { $('edRepHint').textContent = r === undefined ? t('errRepN') : ''; return; }
+  const due = nextDue({ due: $('edDue').value, created: edTask ? edTask.created : Date.now() }, r, Date.now());
+  const show = showFromFor(due, r);
+  $('edRepHint').textContent = t('repHint_' + r.mode, { date: fmtIso(due), show: fmtIso(show < todayIso() ? todayIso() : show) });
+}
+$('edRepeat').addEventListener('click', e => { const b = e.target.closest('button[data-r]'); if (!b) return; edRep = b.dataset.r; renderRep(); });
+$('edRepMode').addEventListener('click', e => { const b = e.target.closest('button[data-m]'); if (!b) return; edRepMode = b.dataset.m; renderRep(); });
+['edRepN', 'edRepUnit', 'edDue'].forEach(id => { $(id).addEventListener('input', renderRep); $(id).addEventListener('change', renderRep); });
+function edCategory() {
+  const nm = $('edCat').value.trim().toLowerCase();
+  return nm ? state.categories.find(c => c.area === edArea && c.name.trim().toLowerCase() === nm) || null : null;
+}
+function updateCatUi() {
+  const name = $('edCat').value.trim(), ex = edCategory();
+  if (!edColorTouched) edColor = ex ? ex.color : (name ? nextColor(edArea) : null);
+  $('edCatDot').style.background = edColor || 'var(--border-strong)';
+  $('edSwatches').classList.toggle('hidden', !name);
+  const custom = edColor && !PALETTE.includes(edColor);
+  $('edSwatches').innerHTML = PALETTE.map(c => '<button type="button" class="swatch' + (c === edColor ? ' on' : '') + '" data-color="' + c + '" style="background:' + c + '" aria-label="' + c + '"></button>').join('')
+    + '<input type="color" id="edColorCustom" value="' + (edColor || PALETTE[0]).toLowerCase() + '" title="' + esc(t('customColor')) + '" aria-label="' + esc(t('customColor')) + '"' + (custom ? ' style="outline:2px solid var(--text)"' : '') + '>';
+  $('edCatHint').textContent = !name ? '' : ex ? t('catColorHint', { name: ex.name }) : t('newCatHint', { name });
+}
+$('edSwatches').addEventListener('click', e => { const b = e.target.closest('[data-color]'); if (!b) return; edColor = b.dataset.color; edColorTouched = true; updateCatUi(); });
+$('edSwatches').addEventListener('change', e => { if (e.target.id !== 'edColorCustom') return; edColor = e.target.value.toUpperCase(); edColorTouched = true; updateCatUi(); });
+$('edCat').addEventListener('input', () => { edColorTouched = false; updateCatUi(); });
+function updateCustUi() {
+  const name = $('edCust').value.trim();
+  $('edCustHint').textContent = !name ? '' : findCustomer(name) ? t('custHint') : t('newCustHint', { name });
+}
+$('edCust').addEventListener('input', () => {
+  const ex = findCustomer($('edCust').value);
+  if (ex) { $('edPhone').value = ex.phone || ''; $('edEmail').value = ex.email || ''; $('edContact').value = ex.contact || ''; }
+  updateCustUi();
+});
+
+makeAc($('edCat'), $('acCat'),
+  q => catsOf(edArea).filter(c => !q || c.name.toLowerCase().includes(q)).slice(0, 8),
+  c => '<i class="dot" style="background:' + esc(c.color) + ';width:12px;height:12px"></i><b style="font-weight:500">' + esc(c.name) + '</b><small>' + esc(t('tasksN', { n: countTasksWith('categoryId', c.id) })) + '</small>',
+  c => { $('edCat').value = c.name; edColorTouched = false; updateCatUi(); $('edDue').focus(); });
+makeAc($('edCust'), $('acCust'),
+  q => customersSorted().filter(c => !q || String(c.name).toLowerCase().includes(q) || String(c.contact || '').toLowerCase().includes(q) || String(c.phone || '').toLowerCase().includes(q) || String(c.email || '').toLowerCase().includes(q)).slice(0, 8),
+  c => '<b style="font-weight:500">' + esc(c.name || '–') + '</b><small>' + esc([c.contact, c.phone, c.email].filter(Boolean).join(' · ')) + '</small>',
+  c => { $('edCust').value = c.name; $('edPhone').value = c.phone || ''; $('edEmail').value = c.email || ''; $('edContact').value = c.contact || ''; updateCustUi(); $('edCat').focus(); });
+
+function renderSeg() {
+  $('edPrio').querySelectorAll('button').forEach(b => { b.className = Number(b.dataset.p) === edPrio ? 'on-p' + edPrio : ''; });
+  $('edStatus').querySelectorAll('button').forEach(b => { b.className = b.dataset.s === edStatus ? 'on' : ''; });
+}
+$('edPrio').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; edPrio = Number(b.dataset.p); renderSeg(); });
+$('edStatus').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; edStatus = b.dataset.s; renderSeg(); });
+$('edDueClear').onclick = () => { $('edDue').value = ''; renderRep(); };
+function showErr(msg) { $('edErr').textContent = msg; $('edErr').classList.remove('hidden'); }
+function hideErr() { $('edErr').classList.add('hidden'); }
+$('edTitle').addEventListener('input', hideErr);
+
+function openEditor(tk, status, preset) {
+  closeMenu();
+  edTask = tk || null;
+  edArea = tk ? tk.area : (preset && preset.area) || curArea();
+  $('edHead').textContent = (tk ? t('editorEdit') : t('editorNew')) + ' · ' + t('area_' + edArea);
+  const ts = tk ? tk.created : Date.now();
+  $('edTime').textContent = t('createdOn', { date: fmtDate(ts), time: fmtTime(ts) });
+  $('edTitle').value = tk ? tk.title || '' : '';
+  const k = tk ? custById(tk.customerId) : preset && preset.customerId ? custById(preset.customerId) : null;
+  $('edCustBlock').classList.toggle('hidden', edArea !== 'business');
+  $('edCust').value = k ? k.name || '' : '';
+  $('edPhone').value = k ? k.phone || '' : '';
+  $('edEmail').value = k ? k.email || '' : '';
+  $('edContact').value = k ? k.contact || '' : '';
+  const r = tk ? tk.repeat : null;
+  edRep = presetKey(r); edRepMode = r ? r.mode : 'done';
+  $('edRepN').value = r ? r.every : 3; $('edRepUnit').value = r ? r.unit : 'day';
+  const c = tk ? catById(tk.categoryId) : null;
+  $('edCat').value = c ? c.name : '';
+  edColorTouched = false; edColor = c ? c.color : null;
+  edPrio = tk ? tk.priority : 2;
+  edStatus = tk ? tk.status : (status || 'open');
+  $('edDue').value = tk ? tk.due || '' : '';
+  $('edNote').value = tk ? tk.note || '' : '';
+  $('edDelete').classList.toggle('hidden', !tk);
+  hideErr(); renderSeg(); updateCatUi(); updateCustUi(); renderRep();
+  $('dlgEditor').showModal();
+  $('dlgEditor').querySelector('.dlg-body').scrollTop = 0;
+  $('edTitle').focus();
+}
+function saveEditor() {
+  const title = $('edTitle').value.trim();
+  if (!title) { showErr(t('errTitle')); $('edTitle').focus(); return; }
+  const repeat = editorRepeat();
+  if (repeat === undefined) { showErr(t('errRepN')); $('edRepN').focus(); return; }
+  const a = edArea;
+  const catId = findOrCreateCategory(a, $('edCat').value, edColor);
+  const custId = a === 'business' ? findOrCreateCustomer($('edCust').value, $('edPhone').value.trim(), $('edEmail').value.trim(), $('edContact').value.trim()) : null;
+  const values = { title, priority: edPrio, categoryId: catId, customerId: custId, due: $('edDue').value || '', note: $('edNote').value.trim(), repeat };
+  if (!edTask) {
+    const now = Date.now();
+    const tk = { id: uid(), area: a, created: now, status: edStatus, order: minOrder(a, edStatus) - 1, doneAt: edStatus === 'done' ? now : null, archived: false, archivedAt: null, showFrom: '', spawnedNext: false, ...values };
+    state.tasks.push(tk);
+    if (edStatus === 'done') spawnNext(tk);
+  } else {
+    const oldDue = edTask.due;
+    Object.assign(edTask, values);
+    if (edTask.showFrom && edTask.due !== oldDue) {
+      edTask.showFrom = edTask.due && edTask.repeat ? showFromFor(edTask.due, edTask.repeat) : '';
+      if (edTask.showFrom && edTask.showFrom <= todayIso()) edTask.showFrom = '';
+    }
+    if (edTask.status !== edStatus) { edTask.showFrom = ''; setStatus(edTask, edStatus); edTask.order = minOrder(a, edStatus, edTask.id) - 1; }
+  }
+  $('dlgEditor').close();
+  renderBoard(); persist();
+  if ($('dlgCustomer').open) renderCustomer();
+}
+$('edSave').onclick = saveEditor;
+$('edDelete').onclick = async () => {
+  if (!edTask) return;
+  const tk = edTask;
+  $('dlgEditor').close();
+  const deleted = await deleteTask(tk);
+  if (!deleted) openEditor(tk);
+};
+$('btnNew').onclick = () => openEditor(null);
+
+/* ---------- Archiv ---------- */
+let archArea = 'private';
+function archivedList() {
+  const q = $('archSearch').value.trim().toLowerCase();
+  return state.tasks.filter(tk => tk.archived && tk.area === archArea && matches(tk, q))
+    .sort((a, b) => (b.doneAt || b.archivedAt || 0) - (a.doneAt || a.archivedAt || 0));
+}
+function openArchive() {
+  closeMenu();
+  archArea = curArea();
+  $('archSearch').value = '';
+  renderArchive();
+  $('dlgArchive').showModal();
+}
+function renderArchive() {
+  $('archArea').innerHTML = AREAS.map(a => '<button type="button" data-a="' + a + '" class="' + (a === archArea ? 'on' : '') + '">' + esc(t('area_' + a)) + '</button>').join('');
+  const list = archivedList(), biz = archArea === 'business';
+  const total = state.tasks.filter(tk => tk.archived && tk.area === archArea).length;
+  if (!total) { $('archContent').innerHTML = '<p class="empty">' + esc(t('archEmpty')) + '</p>'; return; }
+  if (!list.length) { $('archContent').innerHTML = '<p class="empty">' + esc(t('archNoHits')) + '</p>'; return; }
+  let h = '<p class="hint">' + esc(t('archCount', { n: list.length })) + '</p><table><thead><tr><th>' + esc(t('thDone')) + '</th><th>' + esc(t('thTitle')) + '</th><th>' + esc(t('thCategory')) + '</th>'
+    + (biz ? '<th>' + esc(t('thCustomer')) + '</th>' : '') + '<th>' + esc(t('thPrio')) + '</th><th>' + esc(t('thDue')) + '</th><th style="width:80px"></th></tr></thead><tbody>';
+  list.forEach(tk => {
+    const c = catById(tk.categoryId), k = custById(tk.customerId);
+    h += '<tr data-id="' + tk.id + '"><td class="nowrap">' + (tk.doneAt ? fmtDate(tk.doneAt) : '–') + '</td>'
+      + '<td><b style="font-weight:600">' + esc(tk.title) + '</b>' + (tk.note ? '<div class="sub">' + esc(tk.note) + '</div>' : '') + '</td>'
+      + '<td>' + (c ? '<span class="dot" style="background:' + esc(c.color) + '"></span> ' + esc(c.name) : '–') + '</td>'
+      + (biz ? '<td>' + (k ? esc(k.name) : '–') + '</td>' : '')
+      + '<td>P' + tk.priority + '</td><td class="nowrap">' + (tk.due ? fmtIso(tk.due) : '–') + '</td>'
+      + '<td class="nowrap"><button class="ghost icon" data-restore title="' + esc(t('btnRestore')) + '" aria-label="' + esc(t('btnRestore')) + '">' + icon('restore') + '</button>'
+      + '<button class="ghost icon" data-del title="' + esc(t('btnDelete')) + '" aria-label="' + esc(t('btnDelete')) + '">' + icon('trash') + '</button></td></tr>';
+  });
+  $('archContent').innerHTML = h + '</tbody></table>';
+}
+$('archArea').addEventListener('click', e => { const b = e.target.closest('button[data-a]'); if (!b) return; archArea = b.dataset.a; renderArchive(); });
+$('archSearch').addEventListener('input', renderArchive);
+$('archContent').addEventListener('click', e => {
+  const tr = e.target.closest('tr[data-id]'); if (!tr) return;
+  const tk = state.tasks.find(x => x.id === tr.dataset.id); if (!tk) return;
+  if (e.target.closest('[data-restore]')) {
+    tk.archived = false; tk.archivedAt = null; tk.status = 'done'; tk.doneAt = Date.now(); tk.order = minOrder(tk.area, 'done', tk.id) - 1;
+    renderBoard(); renderArchive(); persist(); toast(t('restored'));
+    if ($('dlgCustomer').open) renderCustomer();
+  } else if (e.target.closest('[data-del]')) deleteTask(tk);
+});
+$('btnArchive').onclick = openArchive;
+function csvCell(v) { v = String(v == null ? '' : v); return /[";\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+$('archCsv').onclick = () => {
+  const list = archivedList();
+  if (!list.length) { toast(t('archEmpty')); return; }
+  const head = [t('thArea'), t('thTitle'), t('thPrio'), t('thCategory'), t('thCustomer'), t('thContact'), t('thPhone'), t('thEmail'), t('thDue'), t('thCreated'), t('thDone'), t('thArchived'), t('thNote')];
+  const rows = list.map(tk => {
+    const c = catById(tk.categoryId), k = custById(tk.customerId);
+    return [t('area_' + tk.area), tk.title, tk.priority, c ? c.name : '', k ? k.name : '', k ? k.contact : '', k ? k.phone : '', k ? k.email : '', fmtIso(tk.due),
+      fmtDate(tk.created), tk.doneAt ? fmtDate(tk.doneAt) : '', tk.archivedAt ? fmtDate(tk.archivedAt) : '', tk.note];
+  });
+  const csv = '﻿' + [head, ...rows].map(r => r.map(csvCell).join(';')).join('\r\n');
+  download(new Blob([csv], { type: 'text/csv;charset=utf-8' }), t('csvFile') + '_' + archArea + '_' + isoDate(Date.now()) + '.csv');
+};
+
+/* ---------- Kunden-Ansicht ---------- */
+let custView = null, custShowDone = false, custQuery = '';
+function openCustomer(id) {
+  closeMenu();
+  custView = id || null; custShowDone = false;
+  if (!custView) custQuery = '';
+  renderCustomer();
+  if (!$('dlgCustomer').open) $('dlgCustomer').showModal();
+  $('custBody').scrollTop = 0;
+}
+const custTasks = id => state.tasks.filter(tk => tk.customerId === id);
+const isOpenTask = tk => !tk.archived && tk.status !== 'done';
+const telHref = p => 'tel:' + String(p).replace(/[^\d+]/g, '');
+function miniHtml(tk) {
+  const c = catById(tk.categoryId);
+  let pills = '<span class="pill' + (tk.priority === 1 ? ' p1' : '') + '">P' + tk.priority + '</span>';
+  if (c) pills += '<span class="pill"><i class="dot" style="background:' + esc(c.color) + '"></i>' + esc(c.name) + '</span>';
+  const di = dueInfo(tk);
+  if (di && isOpenTask(tk)) pills += '<span class="pill ' + di.cls + '">' + icon('calendar') + esc(di.txt) + '</span>';
+  if (tk.repeat) pills += '<span class="pill rep">' + icon('repeat') + esc(repeatLabel(tk.repeat)) + '</span>';
+  if (isOpenTask(tk) && isHidden(tk)) pills += '<span class="pill">' + icon('clock') + esc(t('visibleFrom', { date: fmtIso(tk.showFrom) })) + '</span>';
+  if (!isOpenTask(tk) && tk.doneAt) pills += '<span class="pill">' + icon('check') + esc(t('doneOn', { date: fmtDate(tk.doneAt) })) + '</span>';
+  if (tk.archived) pills += '<span class="pill">' + icon('archive') + esc(t('archivedTag')) + '</span>';
+  return '<div class="mini" data-tid="' + tk.id + '" tabindex="0" style="border-left-color:' + (c ? esc(c.color) : 'var(--border-strong)') + '"><b>' + esc(tk.title) + '</b><div class="pills">' + pills + '</div></div>';
+}
+function custListTable() {
+  const q = custQuery.trim().toLowerCase();
+  const list = customersSorted().filter(c => !q || [c.name, c.contact, c.phone, c.email].some(v => String(v || '').toLowerCase().includes(q)));
+  if (!state.customers.length) return '<p class="hint">' + esc(t('custEmpty')) + '</p>';
+  if (!list.length) return '<p class="empty">' + esc(t('archNoHits')) + '</p>';
+  return '<table class="cust-list"><thead><tr><th>' + esc(t('thName')) + '</th><th>' + esc(t('thContact')) + '</th><th>' + esc(t('thPhone')) + '</th><th style="width:70px">' + esc(t('col_open')) + '</th><th style="width:80px">' + esc(t('col_done')) + '</th></tr></thead><tbody>'
+    + list.map(c => { const ts = custTasks(c.id); return '<tr data-kid="' + c.id + '" tabindex="0"><td><b style="font-weight:600">' + esc(c.name || '–') + '</b></td><td>' + esc(c.contact) + '</td><td>' + esc(c.phone) + '</td><td>' + ts.filter(isOpenTask).length + '</td><td>' + ts.filter(x => !isOpenTask(x)).length + '</td></tr>'; }).join('')
+    + '</tbody></table>';
+}
+function renderCustomer() {
+  const body = $('custBody'), foot = $('custFoot');
+  if (custView && !custById(custView)) custView = null;
+  if (!custView) {
+    $('custTitle').textContent = t('customers');
+    $('custBack').classList.add('hidden');
+    body.innerHTML = '<div class="arch-tools"><input id="custSearch" type="search" style="width:280px" autocomplete="off" placeholder="' + esc(t('custSearchPh')) + '" value="' + esc(custQuery) + '"></div><div id="custTable">' + custListTable() + '</div>';
+    $('custSearch').oninput = e => { custQuery = e.target.value; $('custTable').innerHTML = custListTable(); };
+    foot.innerHTML = '<button data-edit>' + icon('edit') + esc(t('custEditData')) + '</button><div class="spacer"></div><button data-close-c class="primary">' + esc(t('btnClose')) + '</button>';
+    return;
+  }
+  const k = custById(custView), ts = custTasks(k.id);
+  const open = ts.filter(isOpenTask), done = ts.filter(x => !isOpenTask(x)).sort((a, b) => (b.doneAt || b.archivedAt || 0) - (a.doneAt || a.archivedAt || 0));
+  $('custTitle').textContent = k.name || '–';
+  $('custBack').classList.remove('hidden');
+  let h = '<div class="cust-head">'
+    + (k.contact ? '<span>' + icon('user') + ' ' + esc(k.contact) + '</span>' : '')
+    + (k.phone ? '<a href="' + esc(telHref(k.phone)) + '">' + icon('phone') + esc(k.phone) + '</a>' : '')
+    + (k.email ? '<a href="mailto:' + esc(k.email) + '">' + icon('mail') + esc(k.email) + '</a>' : '')
+    + '</div><div class="hint">' + esc(t('custCounts', { o: open.length, d: done.length })) + '</div>';
+  if (!open.length) h += '<p class="empty">' + esc(t('custNoTasks')) + '</p>';
+  ['open', 'planned', 'waiting'].forEach(col => {
+    const l = sortTasks(open.filter(x => x.status === col), 'prio');
+    if (!l.length) return;
+    h += '<div class="cust-sec"><span class="col-dot" style="background:' + COL_COLORS[col] + '"></span>' + esc(t('col_' + col)) + ' · ' + l.length + '</div>' + l.map(miniHtml).join('');
+  });
+  h += '<div class="cust-sec">' + icon('archive', 15) + esc(t('custDoneArch')) + ' · ' + done.length
+    + (done.length ? ' <button class="ghost" data-toggle-done style="margin-left:auto;font-size:12px;padding:2px 8px">' + esc(custShowDone ? t('custHide') : t('custShow')) + '</button>' : '') + '</div>';
+  if (!done.length) h += '<p class="hint">' + esc(t('custNoDone')) + '</p>';
+  else if (custShowDone) h += done.map(miniHtml).join('');
+  body.innerHTML = h;
+  foot.innerHTML = '<button data-edit>' + icon('edit') + esc(t('custEditData')) + '</button><div class="spacer"></div><button data-new class="primary">' + icon('plus') + esc(t('custNewTask', { name: k.name || '–' })) + '</button>';
+}
+$('custBody').addEventListener('click', e => {
+  const row = e.target.closest('tr[data-kid]');
+  if (row) { custView = row.dataset.kid; custShowDone = false; renderCustomer(); $('custBody').scrollTop = 0; return; }
+  if (e.target.closest('[data-toggle-done]')) { custShowDone = !custShowDone; renderCustomer(); return; }
+  const m = e.target.closest('.mini[data-tid]');
+  if (m) { const tk = state.tasks.find(x => x.id === m.dataset.tid); if (tk) openEditor(tk); }
+});
+$('custBody').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const row = e.target.closest('tr[data-kid]'), m = e.target.closest('.mini[data-tid]');
+  if (row || m) { e.preventDefault(); e.target.click(); }
+});
+$('custFoot').addEventListener('click', e => {
+  if (e.target.closest('[data-new]')) openEditor(null, null, { area: 'business', customerId: custView });
+  else if (e.target.closest('[data-edit]')) openSettings('customers');
+  else if (e.target.closest('[data-close-c]')) $('dlgCustomer').close();
+});
+$('custBack').onclick = () => { custView = null; renderCustomer(); };
+$('btnCustomers').onclick = () => openCustomer(null);
+$('dlgSettings').addEventListener('close', () => { if ($('dlgCustomer').open) renderCustomer(); });
+
+/* ---------- Einstellungen ---------- */
+let settingsTab = 'general', setCatArea = 'private';
+function openSettings(tab) {
+  closeMenu();
+  settingsTab = typeof tab === 'string' ? tab : 'general';
+  setCatArea = curArea();
+  renderSettings();
+  if (!$('dlgSettings').open) $('dlgSettings').showModal();
+}
+function swatchRow(color, id) {
+  return '<div class="swatches">' + PALETTE.map(c => '<button type="button" class="swatch' + (c === color ? ' on' : '') + '" data-swatch="' + c + '" data-id="' + id + '" style="background:' + c + '" aria-label="' + c + '"></button>').join('')
+    + '<input type="color" data-custom="' + id + '" value="' + String(color || PALETTE[0]).toLowerCase() + '" title="' + esc(t('customColor')) + '" aria-label="' + esc(t('customColor')) + '"' + (!PALETTE.includes(color) ? ' style="outline:2px solid var(--text)"' : '') + '></div>';
+}
+function renderSettings() {
+  const s = state.settings;
+  $('setTabs').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.tab === settingsTab));
+  let html = '';
+  if (settingsTab === 'categories') {
+    const cats = catsOf(setCatArea);
+    html = '<div class="set-sec"><h3>' + icon('tag') + esc(t('tabCategories')) + '</h3><div class="seg small" id="stCatArea" style="margin-bottom:8px">'
+      + AREAS.map(a => '<button type="button" data-a="' + a + '" class="' + (a === setCatArea ? 'on' : '') + '">' + esc(t('area_' + a)) + '</button>').join('') + '</div>'
+      + (cats.length ? '<table class="list-table"><thead><tr><th>' + esc(t('thName')) + '</th><th>' + esc(t('thColor')) + '</th><th>' + esc(t('thCount')) + '</th><th style="width:40px"></th></tr></thead><tbody>'
+        + cats.map(c => '<tr data-cid="' + c.id + '"><td><input data-f="name" value="' + esc(c.name) + '"></td><td>' + swatchRow(c.color, c.id) + '</td><td>' + countTasksWith('categoryId', c.id) + '</td><td><button class="ghost icon" data-del-cat title="' + esc(t('btnDelete')) + '" aria-label="' + esc(t('btnDelete')) + '">' + icon('trash') + '</button></td></tr>').join('')
+        + '</tbody></table>' : '<p class="hint">' + esc(t('catEmpty')) + '</p>')
+      + '<div class="btnrow"><button id="stAddCat">' + icon('plus') + esc(t('catAdd')) + '</button></div><p class="hint">' + esc(t('catHint')) + '</p></div>';
+  } else if (settingsTab === 'customers') {
+    const custs = customersSorted();
+    html = '<div class="set-sec"><h3>' + icon('users') + esc(t('tabCustomers')) + '</h3>'
+      + (custs.length ? '<table class="list-table"><thead><tr><th>' + esc(t('thName')) + '</th><th>' + esc(t('thContact')) + '</th><th style="width:150px">' + esc(t('thPhone')) + '</th><th>' + esc(t('thEmail')) + '</th><th style="width:70px">' + esc(t('thCount')) + '</th><th style="width:40px"></th></tr></thead><tbody>'
+        + custs.map(c => '<tr data-kid="' + c.id + '"><td><input data-f="name" value="' + esc(c.name) + '"></td><td><input data-f="contact" value="' + esc(c.contact) + '"></td><td><input data-f="phone" value="' + esc(c.phone) + '"></td><td><input data-f="email" value="' + esc(c.email) + '"></td><td>' + countTasksWith('customerId', c.id) + '</td><td><button class="ghost icon" data-del-cust title="' + esc(t('btnDelete')) + '" aria-label="' + esc(t('btnDelete')) + '">' + icon('trash') + '</button></td></tr>').join('')
+        + '</tbody></table>' : '<p class="hint">' + esc(t('custEmpty')) + '</p>')
+      + '<div class="btnrow"><button id="stAddCust">' + icon('plus') + esc(t('custAdd')) + '</button><button id="stCsv">' + icon('upload') + esc(t('custImport')) + '</button></div><p class="hint">' + esc(t('custHintCsv')) + '</p></div>';
+  } else {
+    let storage;
+    if (!fsSupported) storage = '<p>' + esc(t('storageUnsupported')) + '</p>';
+    else if (!fileHandle) storage = '<p>' + esc(t('storageNone')) + '</p>';
+    else if (filePermission !== 'granted') storage = '<p><b>' + esc(t('storageFile', { name: fileHandle.name })) + '</b></p><p>' + esc(t('storageReconnect', { name: fileHandle.name })) + '</p>';
+    else storage = '<p><b>' + esc(t('storageFile', { name: fileHandle.name })) + '</b></p><p class="hint">' + esc(t('lastSaved', { time: lastSavedAt ? fmtDate(lastSavedAt) + ' ' + fmtTime(lastSavedAt) : '–' })) + '</p>';
+    const fsButtons = fsSupported ? '<button id="stNew">' + icon('file') + esc(t('btnNewFile')) + '</button><button id="stOpen">' + icon('upload') + esc(t('btnOpenFile')) + '</button>' + (fileHandle && filePermission !== 'granted' ? '<button id="stReconnect" class="primary">' + esc(t('btnReconnect')) + '</button>' : '') : '';
+    const seg = (key, opts) => '<div class="seg" data-seg="' + key + '">' + opts.map(o => '<button type="button" data-v="' + o[0] + '" class="' + (s[key] === o[0] ? 'on' : '') + '">' + esc(o[1]) + '</button>').join('') + '</div>';
+    html = '<div class="set-sec"><h3>' + icon('file') + esc(t('setStorage')) + '</h3>' + storage + '<div class="btnrow">' + fsButtons + '<button id="stExport">' + icon('download') + esc(t('btnExport')) + '</button><button id="stImport">' + icon('upload') + esc(t('btnImport')) + '</button></div><p class="hint">' + esc(t('storageHint')) + '</p></div>'
+      + '<div class="set-sec"><h3>' + icon('archive') + esc(t('setArchive')) + '</h3><div class="inline-num"><label for="stDays" style="margin:0;font-size:14px;color:var(--text)">' + esc(t('archiveDaysLabel')) + '</label><input id="stDays" type="number" min="0" max="365" step="1" value="' + s.archiveDays + '"><span>' + esc(t('days')) + '</span></div><p class="hint">' + esc(t('archiveDaysHint')) + '</p></div>'
+      + '<div class="set-sec"><h3>' + icon('palette') + esc(t('setDisplay')) + '</h3><label>' + esc(t('theme')) + '</label>' + seg('theme', [['light', t('themeLight')], ['dark', t('themeDark')], ['system', t('themeSystem')]])
+      + '<label>' + esc(t('language')) + '</label>' + seg('lang', [['de', 'Deutsch'], ['en', 'English']]) + '</div>'
+      + '<div class="set-sec"><h3>' + icon('keyboard') + esc(t('setShortcuts')) + '</h3>' + shortcutsHtml() + '</div>';
+  }
+  $('setBody').innerHTML = html;
+  bindSettings();
+}
+function bindSettings() {
+  const b = $('setBody');
+  const on = (id, fn) => { if ($(id)) $(id).onclick = fn; };
+  on('stNew', newFile); on('stOpen', openFile); on('stReconnect', reconnectFile); on('stExport', exportBackup);
+  on('stImport', () => $('fileImport').click()); on('stCsv', () => $('fileCsv').click());
+  if ($('stDays')) $('stDays').onchange = e => {
+    let v = Math.round(Number(e.target.value)); if (!Number.isFinite(v) || v < 0) v = 0; if (v > 365) v = 365;
+    state.settings.archiveDays = v; e.target.value = v; persist(); renderBoard(); runAutoArchive();
+  };
+  b.querySelectorAll('[data-seg]').forEach(sg => sg.addEventListener('click', e => {
+    const btn = e.target.closest('button'); if (!btn) return;
+    state.settings[sg.dataset.seg] = btn.dataset.v; persist(); applyAll(); renderSettings();
+  }));
+  if ($('stCatArea')) $('stCatArea').onclick = e => { const btn = e.target.closest('button[data-a]'); if (!btn) return; setCatArea = btn.dataset.a; renderSettings(); };
+  on('stAddCat', () => {
+    let base = t('newCatName'), name = base, i = 2;
+    while (catsOf(setCatArea).some(c => c.name.toLowerCase() === name.toLowerCase())) name = base + ' ' + i++;
+    state.categories.push({ id: uid(), area: setCatArea, name, color: nextColor(setCatArea) });
+    persist(); renderSettings(); renderBoard();
+    const inp = b.querySelector('tr[data-cid] input[value="' + CSS.escape(name) + '"]'); if (inp) { inp.focus(); inp.select(); }
+  });
+  b.querySelectorAll('tr[data-cid] input[data-f="name"]').forEach(inp => inp.addEventListener('input', e => {
+    const c = catById(e.target.closest('tr').dataset.cid); if (c) { c.name = e.target.value; persistSoon(); renderBoard(); }
+  }));
+  b.querySelectorAll('[data-swatch]').forEach(sw => sw.onclick = () => {
+    const c = catById(sw.dataset.id); if (c) { c.color = sw.dataset.swatch; persist(); renderSettings(); renderBoard(); }
+  });
+  b.querySelectorAll('input[data-custom]').forEach(inp => inp.addEventListener('change', e => {
+    const c = catById(inp.dataset.custom); if (c) { c.color = e.target.value.toUpperCase(); persist(); renderSettings(); renderBoard(); }
+  }));
+  b.querySelectorAll('[data-del-cat]').forEach(btn => btn.onclick = async () => {
+    const id = btn.closest('tr').dataset.cid, n = countTasksWith('categoryId', id);
+    if (n && !await confirmDlg(t('catDeleteTitle'), t('catDeleteText', { n }), true)) return;
+    state.tasks.forEach(tk => { if (tk.categoryId === id) tk.categoryId = null; });
+    state.categories = state.categories.filter(c => c.id !== id);
+    persist(); renderSettings(); renderBoard();
+  });
+  on('stAddCust', () => {
+    state.customers.push({ id: uid(), name: '', phone: '', email: '', contact: '' });
+    persist(); renderSettings();
+    const inp = b.querySelector('tr[data-kid] input[value=""][data-f="name"]'); if (inp) inp.focus();
+  });
+  b.querySelectorAll('tr[data-kid] input').forEach(inp => inp.addEventListener('input', e => {
+    const c = custById(e.target.closest('tr').dataset.kid); if (c) { c[e.target.dataset.f] = e.target.value; persistSoon(); renderBoard(); }
+  }));
+  b.querySelectorAll('[data-del-cust]').forEach(btn => btn.onclick = async () => {
+    const id = btn.closest('tr').dataset.kid, n = countTasksWith('customerId', id);
+    if (n && !await confirmDlg(t('custDeleteTitle'), t('custDeleteText', { n }), true)) return;
+    state.tasks.forEach(tk => { if (tk.customerId === id) tk.customerId = null; });
+    state.customers = state.customers.filter(c => c.id !== id);
+    persist(); renderSettings(); renderBoard();
+  });
+}
+$('fileCsv').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  const text = await f.text();
+  const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim());
+  if (!lines.length) return;
+  const sep = lines[0].includes(';') ? ';' : lines[0].includes('\t') ? '\t' : ',';
+  let added = 0;
+  lines.forEach((line, i) => {
+    const p = line.split(sep).map(x => x.trim().replace(/^"(.*)"$/, '$1'));
+    if (i === 0 && /^(name|kunde|customer)$/i.test(p[0])) return;
+    if (!p[0]) return;
+    if (findCustomer(p[0])) return;
+    state.customers.push({ id: uid(), name: p[0], phone: p[1] || '', email: p[2] || '', contact: p[3] || '' }); added++;
+  });
+  persist(); renderSettings(); renderBoard(); toast(t('custImported', { n: added }));
+});
+function shortcutsHtml() {
+  const list = [['Alt+N', 'scNew'], ['Ctrl+Enter', 'scSave'], ['Alt+1 / 2 / 3', 'scPrio'], ['Alt+B', 'scArea'], ['Ctrl+F', 'scSearch'], ['Esc', 'scClose']];
+  return '<div class="sc-list">' + list.map(x => '<div><span>' + esc(t(x[1])) + '</span><span class="kbd">' + x[0] + '</span></div>').join('') + '</div><p class="hint">' + esc(t('scMacHint')) + '</p>';
+}
+$('btnSettings').onclick = () => openSettings('general');
+$('setTabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (!b) return; settingsTab = b.dataset.tab; renderSettings(); $('setBody').scrollTop = 0; });
+$('saveStatus').onclick = () => { if (fileHandle && filePermission !== 'granted') reconnectFile(); else openSettings('general'); };
+
+/* ---------- Hilfe ---------- */
+function privacyHtml() {
+  return '<ul>' + [['pWhereT', 'pWhere'], ['pCloudT', 'pCloud'], ['pCustT', 'pCust'], ['pDriveT', 'pDrive'], ['pPathT', 'pPath']]
+    .map(p => '<li><b>' + esc(t(p[0])) + ':</b> ' + esc(t(p[1])) + '</li>').join('') + '</ul>';
+}
+function diagramSvg() {
+  const W = 140, H = 54, row = 130, rowB = 250, xs = [95, 275, 455, 635];
+  const txt = (x, y, s, o) => { o = o || {}; return '<text x="' + x + '" y="' + y + '" text-anchor="' + (o.anchor || 'middle') + '" font-size="' + (o.size || 13) + '" font-weight="' + (o.bold ? 600 : 400) + '" fill="' + (o.quiet ? 'var(--muted)' : 'var(--text)') + '">' + esc(s) + '</text>'; };
+  const node = (cx, cy, color, a, b, main) => '<rect x="' + (cx - W / 2) + '" y="' + (cy - H / 2) + '" width="' + W + '" height="' + H + '" rx="8" fill="' + (main ? 'var(--accent-bg)' : 'var(--surface)') + '" stroke="' + (main ? 'var(--accent)' : 'var(--border-strong)') + '" stroke-width="' + (main ? 2 : 1.25) + '"/>'
+    + (color ? '<circle cx="' + (cx - W / 2 + 14) + '" cy="' + (cy - 5) + '" r="5" fill="' + color + '"/>' : '')
+    + txt(cx + (color ? 6 : 0), cy - 1, a, { bold: true }) + txt(cx, cy + 16, b, { size: 11.5, quiet: true });
+  const days = state.settings.archiveDays;
+  const names = ['open', 'planned', 'waiting', 'done'], subs = ['dgOpenSub', 'dgPlannedSub', 'dgWaitingSub', 'dgDoneSub'];
+  let s = '<svg class="diagram" viewBox="0 0 760 300" role="img" aria-label="' + esc(t('dgTitle')) + '" font-family="inherit">'
+    + '<defs><marker id="dg-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>'
+    + txt(24, 30, t('dgTitle'), { anchor: 'start', size: 15, bold: true })
+    + '<path d="M' + xs[0] + ' ' + (row - H / 2 - 6) + 'V70H' + xs[3] + 'V' + (row - H / 2 - 6) + '" fill="none" stroke="var(--border-strong)" stroke-width="1.25" stroke-dasharray="4 4" marker-start="url(#dg-arrow)" marker-end="url(#dg-arrow)"/>'
+    + '<path d="M' + xs[1] + ' 70V' + (row - H / 2 - 6) + 'M' + xs[2] + ' 70V' + (row - H / 2 - 6) + '" fill="none" stroke="var(--border-strong)" stroke-width="1.25" stroke-dasharray="4 4" marker-end="url(#dg-arrow)"/>'
+    + '<rect x="' + (365 - 150) + '" y="60" width="300" height="20" fill="var(--surface)"/>' + txt(365, 74, t('dgFree'), { size: 11.5, quiet: true })
+    + '<g fill="none" stroke="var(--muted)" stroke-width="1.25">';
+  for (let i = 0; i < 3; i++) s += '<path d="M' + (xs[i] + W / 2) + ' ' + row + 'H' + (xs[i + 1] - W / 2) + '" marker-end="url(#dg-arrow)"/>';
+  s += '<path d="M' + (xs[3] - 18) + ' ' + (row + H / 2) + 'V' + (rowB - H / 2) + '" marker-end="url(#dg-arrow)"/>'
+    + '<path d="M' + (xs[3] + 18) + ' ' + (rowB - H / 2) + 'V' + (row + H / 2) + '" stroke-dasharray="4 3" marker-end="url(#dg-arrow)"/></g>';
+  names.forEach((n, i) => { s += node(xs[i], row, COL_COLORS[n], t('col_' + n), t(subs[i])); });
+  s += node(xs[3], rowB, '', t('dgArchive'), t('dgArchiveSub'), true)
+    + txt(xs[3] - 26, (row + rowB) / 2 + 4, days > 0 ? t('dgArchiving', { n: days }) : t('dgArchivingOff'), { anchor: 'end', size: 11.5, quiet: true })
+    + txt(xs[3] + 26, (row + rowB) / 2 + 4, t('dgRestore'), { anchor: 'start', size: 11.5, quiet: true })
+    + '</svg>';
+  return s;
+}
+function renderHelp() {
+  const lang = state.settings.lang === 'en' ? 'en' : 'de';
+  $('helpBody').innerHTML =
+    '<h3>' + esc(t('hWhatT')) + '</h3><p>' + esc(t('hWhat')) + '</p>'
+    + '<h3>' + esc(t('hFlowT')) + '</h3>' + diagramSvg() + '<p>' + esc(t('hFlow')) + '</p>'
+    + '<h3>' + esc(t('hColsT')) + '</h3><ul>' + COLS.map(c => '<li><b>' + esc(t('col_' + c)) + ':</b> ' + esc(t('hCol' + c.charAt(0).toUpperCase() + c.slice(1))) + '</li>').join('') + '</ul>'
+    + '<h3>' + esc(t('hAreasT')) + '</h3><p>' + esc(t('hAreas')) + '</p>'
+    + '<h3>' + esc(t('hCatT')) + '</h3><p>' + esc(t('hCat')) + '</p>'
+    + '<h3>' + esc(t('hCustT')) + '</h3><p>' + esc(t('hCust')) + '</p>'
+    + '<h3>' + esc(t('hPrioT')) + '</h3><p>' + esc(t('hPrio')) + '</p>'
+    + '<h3>' + esc(t('hRepT')) + '</h3><p>' + esc(t('hRep')) + '</p>'
+    + '<h3>' + esc(t('hSortT')) + '</h3><p>' + esc(t('hSort')) + '</p>'
+    + '<h3>' + esc(t('hDndT')) + '</h3><p>' + esc(t('hDnd')) + '</p>'
+    + '<h3>' + esc(t('hArchT')) + '</h3><p>' + esc(t('hArch')) + '</p>'
+    + '<h3>' + esc(t('hSaveT')) + '</h3><p>' + esc(t('hSave')) + '</p>'
+    + '<div class="privacy"><h3>' + icon('shield') + esc(t('hPrivT')) + '</h3>' + privacyHtml() + '</div>'
+    + '<h3>' + esc(t('hScT')) + '</h3>' + shortcutsHtml()
+    + '<h3>' + esc(t('hVerT')) + '</h3><ul>' + CHANGELOG.map(c => '<li><b>' + c.v + '</b> – ' + c.d + ': ' + esc(c[lang]) + '</li>').join('') + '</ul>';
+}
+$('btnHelp').onclick = () => { closeMenu(); renderHelp(); $('dlgHelp').showModal(); $('helpBody').scrollTop = 0; };
+
+/* ---------- Kopfzeile ---------- */
+$('btnTheme').onclick = () => { state.settings.theme = effectiveTheme() === 'dark' ? 'light' : 'dark'; applyTheme(); persist(); };
+$('btnLang').onclick = () => {
+  state.settings.lang = state.settings.lang === 'de' ? 'en' : 'de';
+  applyAll(); persist();
+  if ($('dlgHelp').open) renderHelp();
+  if ($('dlgSettings').open) renderSettings();
+  if ($('dlgArchive').open) renderArchive();
+  if ($('dlgCustomer').open) renderCustomer();
+};
+document.querySelectorAll('dialog [data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+
+/* ---------- Tastenkürzel ---------- */
+document.addEventListener('keydown', e => {
+  const editorOpen = $('dlgEditor').open;
+  const anyOpen = !!document.querySelector('dialog[open]');
+  const mod = e.ctrlKey || e.metaKey;
+  if (menuEl && e.key === 'Escape') { e.preventDefault(); closeMenu(); return; }
+  if (e.altKey && !mod && e.code === 'KeyN' && !anyOpen) { e.preventDefault(); openEditor(null); return; }
+  if (e.altKey && !mod && e.code === 'KeyB' && !anyOpen) { e.preventDefault(); setArea(curArea() === 'private' ? 'business' : 'private'); return; }
+  if (editorOpen) {
+    if (mod && e.key === 'Enter') { e.preventDefault(); saveEditor(); return; }
+    if (e.altKey && !mod && ['Digit1', 'Digit2', 'Digit3', 'Numpad1', 'Numpad2', 'Numpad3'].includes(e.code)) {
+      e.preventDefault(); edPrio = Number(e.code.slice(-1)); renderSeg(); return;
+    }
+  }
+  if (mod && !e.shiftKey && e.code === 'KeyF' && !anyOpen) { e.preventDefault(); $('search').focus(); $('search').select(); }
+});
+
+/* ---------- Start ---------- */
+applyAll();
+lastSavedAt = state.savedAt;
+initFile().then(runAutoArchive);
+setInterval(() => { runAutoArchive(); renderBoard(); }, 60 * 60 * 1000);
+</script>
+</body>
+</html>

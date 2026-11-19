@@ -1,0 +1,39 @@
+# Änderungen
+
+Deutsch · [English](CHANGELOG.md)
+
+Alle wichtigen Änderungen am Task Organizer. Die Versionen folgen [Semantic Versioning](https://semver.org/lang/de/); 0.x-Versionen sind Beta.
+
+## 0.2.2 – 19.11.2026
+
+### Geändert
+- Veröffentlichung auf GitHub: Autor «alpine-marmot», Fusszeile mit Logo und Links zu Repository und Profil
+
+## 0.2.1 – 18.11.2026
+
+### Neu
+- Doppelklick auf eine leere Stelle in den Spalten Offen, Geplant oder Warten öffnet «Neue Aufgabe» mit dieser Spalte vorausgewählt
+
+## 0.2.0 – 14.11.2026
+
+### Neu
+- Wiederkehrende Aufgaben: täglich, wöchentlich, alle 2 Wochen, monatlich, jährlich oder eigenes Intervall
+- Nächstes Datum pro Aufgabe «ab Erledigt» oder «nach festem Plan»; die neue Karte kommt in «Geplant» und erscheint kurz vor der Fälligkeit
+- «Kommende Wiederholungen» unten in der Spalte «Geplant»
+- Kunden-Ansicht: Kundenkarte mit Kontaktdaten zum Anklicken, offenen und erledigten Aufgaben, «Neue Aufgabe für …»
+- Neues Kundenfeld «Ansprechperson» (Erfassung, Einstellungen, CSV-Import und -Export)
+
+### Geändert
+- Sortier-Menü in den Spalten etwas breiter
+
+## 0.1.0 – 14.11.2026
+
+### Neu
+- Erste Beta: Bereiche Privat und Geschäftlich, vier Spalten (Offen, Geplant, Warten, Erledigt)
+- Aufgaben mit Priorität 1–3, Kategorien mit Farben, Fälligkeitsdatum und Notiz; im geschäftlichen Bereich Kunden mit Telefon und E-Mail
+- Kategorien und Kunden entstehen beim ersten Eintippen und werden danach vorgeschlagen
+- Sortierung pro Spalte, Drag & Drop, Menü «Verschieben nach …»
+- Archiv (per Knopf oder automatisch nach 14 Tagen), Suche, Wiederherstellen, CSV-Export
+- Speichern in eine Datei (Chrome/Edge), Zwischenspeicher im Browser, Sicherung exportieren und importieren
+- Einstellungen mit Reitern Allgemein, Kategorien und Kunden; Hilfe mit Ablauf-Diagramm und Datenschutz-Hinweisen
+- Hell/Dunkel, Deutsch/Englisch, Tastenkürzel
