@@ -14,7 +14,7 @@ Ein Kanban-Board für Arbeiten, Aufgaben und To-dos – getrennt in <b>Privat</b
 Ohne Server, ohne Konto, ohne Internetverbindung.
 </p>
 
-<p align="center"><b>Version 0.2.2 (Beta)</b> · <a href="CHANGELOG.de.md">Änderungen</a> · <a href="https://alpine-marmot.github.io/task-organizer/">App öffnen</a></p>
+<p align="center"><b>Version 0.3.0 (Beta)</b> · <a href="CHANGELOG.de.md">Änderungen</a> · <a href="https://alpine-marmot.github.io/task-organizer/">App öffnen</a></p>
 
 ![Task Organizer im hellen Design, Bereich Geschäftlich](screenshots/light.png)
 
@@ -26,6 +26,8 @@ Ohne Server, ohne Konto, ohne Internetverbindung.
 - **Kategorien mit Farben:** entstehen beim ersten Eintippen und werden danach vorgeschlagen; die Farbe erscheint als Rand der Karte
 - **Kunden** (Bereich Geschäftlich): entstehen automatisch, werden beim Tippen vorgeschlagen, mit Ansprechperson, Telefon und E-Mail
 - **Kundenkarte:** Telefon und E-Mail zum Anklicken, alle offenen Aufgaben nach Spalte, erledigte und archivierte Aufgaben, «Neue Aufgabe für …»
+- **Kunden-Import** aus CSV (Excel, Outlook …) oder vCard (.vcf, Apple Kontakte): Spalten werden automatisch erkannt und lassen sich neu zuordnen, Daten werden bereinigt (Telefon im Schweizer Format, E-Mail, Zeichensatz), Vorschau mit An-/Abwählen und Umgang mit Doppelten (zusammenführen, behalten, ersetzen)
+- **Kunden verwalten:** mehrere per Kästchen auswählen und gemeinsam löschen, Doppelte finden und zusammenführen
 - **Wiederkehrende Aufgaben:** täglich, wöchentlich, alle 2 Wochen, monatlich, jährlich oder eigenes Intervall – ab Erledigt oder nach festem Plan
 - **Sortierung pro Spalte:** Priorität, Erfassungsdatum, Fälligkeit, Farbe oder manuell
 - **Drag & Drop** zwischen und innerhalb der Spalten, dazu ein Menü «Verschieben nach …» auf jeder Karte
@@ -59,6 +61,7 @@ Ohne Server, ohne Konto, ohne Internetverbindung.
 | Bereich wechseln | Reiter oben oder `Alt+B` |
 | Kundenkarte | blauen Kunden-Chip auf einer Karte oder Knopf «Kunden» anklicken |
 | Archivieren | «Archivieren» auf einer erledigten Karte, «Alle archivieren» oder automatisch |
+| Kunden importieren | «Importieren» im Kunden-Fenster oder unter Einstellungen › Kunden |
 
 ### Wiederkehrende Aufgaben
 
@@ -70,6 +73,21 @@ Unter **Wiederholen** wählst du, wie oft eine Aufgabe anfällt:
 Sobald eine Karte in **Erledigt** landet, wird die nächste in **Geplant** vorbereitet. Sie erscheint erst kurz vor der Fälligkeit – bei täglich am selben Tag, sonst 2 Tage vorher. Vorbereitete Karten stehen unten in «Geplant» unter «kommende Wiederholungen».
 
 ![Kundenkarte](screenshots/customer-de.png)
+
+### Kunden importieren
+
+Klicke im Kunden-Fenster oder unter *Einstellungen › Kunden* auf **Importieren** und wähle eine CSV-Datei (Excel, Outlook …) oder eine vCard (.vcf, z. B. aus Apple Kontakte).
+
+1. Ein Ladebalken zeigt die Umwandlung.
+2. **Spalten-Zuordnung:** Spalten wie *Firma*, *Vorname*, *Nachname*, *Mobiltelefon* oder *E-Mail* werden automatisch erkannt. Jede Zuordnung lässt sich per Auswahlfeld ändern – die Vorschau passt sich sofort an.
+3. **Bereinigung:** Überflüssige Leerzeichen werden entfernt, E-Mail-Adressen klein geschrieben, Schweizer Telefonnummern vereinheitlicht (`079 000 11 22` → `+41 79 000 11 22`), Umlaute aus Excel/Windows korrigiert und doppelte Einträge in der Datei zusammengeführt.
+4. **Vorschau:** Alle Kontakte sind ausgewählt – nicht gewünschte abwählen und Felder direkt korrigieren. Bei bereits vorhandenen Kunden wählst du *Zusammenführen* (leere Felder ergänzen, Standard), *Bestehenden behalten* oder *Durch Import ersetzen*.
+
+![Import-Vorschau mit Spalten-Zuordnung](screenshots/import-de.png)
+
+Unter *Einstellungen › Kunden* wählst du mit den Kästchen mehrere Kunden aus und löschst sie gemeinsam. **Doppelte finden** führt Einträge mit gleichem Namen zusammen (Gross-/Kleinschreibung, Akzente und Satzzeichen werden ignoriert) – deren Aufgaben gehen an den Eintrag, der bleibt.
+
+![Kundenliste mit Mehrfachauswahl](screenshots/customers-de.png)
 
 ### Tastenkürzel
 
@@ -102,7 +120,7 @@ Das Speichern in eine Datei nutzt die *File System Access API*, die nur Chromium
 | | |
 |---|---|
 | **Wo die Daten liegen** | Nur in der gewählten Datendatei und im Browser-Speicher (localStorage / IndexedDB) auf deinem Computer |
-| **Internet** | Die App stellt **keine** Verbindung ins Internet her: kein Tracking, keine Cookies, keine Schriften oder Bibliotheken von aussen |
+| **Internet** | Die App stellt **keine** Verbindung ins Internet her – importierte Dateien werden nur in deinem Browser verarbeitet: kein Tracking, keine Cookies, keine Schriften oder Bibliotheken von aussen |
 | **Autor** | sieht nichts – es gibt keinen Server |
 | **GitHub Pages** | Beim Öffnen der Online-Version erhält GitHub die üblichen Zugriffsdaten (z. B. IP-Adresse) wie bei jeder Website. Deine Aufgaben werden nicht übertragen |
 

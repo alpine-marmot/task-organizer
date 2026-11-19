@@ -4,6 +4,21 @@ Deutsch · [English](CHANGELOG.md)
 
 Alle wichtigen Änderungen am Task Organizer. Die Versionen folgen [Semantic Versioning](https://semver.org/lang/de/); 0.x-Versionen sind Beta.
 
+## 0.3.0 – 19.11.2026
+
+### Neu
+- Kunden-Import mit Vorschau: jeden Kontakt an- oder abwählen (alle vorausgewählt) und Felder direkt korrigieren
+- Automatische Spaltenerkennung bei CSV-Dateien (z. B. Firma, Vorname, Nachname, Mobile) mit änderbarer Zuordnung; Ladebalken während der Umwandlung
+- Bereinigung beim Import: Leerzeichen, E-Mail-Adressen, Telefonnummern im Schweizer Format (z. B. 079 539 95 32 → +41 79 539 95 32), Zeichensatz von Excel/Windows, doppelte Einträge in der Datei
+- Bereits vorhandene Kunden: zusammenführen (Standard), bestehenden behalten oder ersetzen – pro Kontakt
+- vCard-Import (.vcf), z. B. aus Apple Kontakte oder Outlook
+- Einstellungen › Kunden: Kästchen für Mehrfachauswahl und «Ausgewählte löschen», «Doppelte finden» mit Zusammenführen
+- Kunden-Fenster: Knopf «Importieren» neben «Kundendaten bearbeiten»
+
+### Geändert
+- Telefonnummern werden in den Kundenlisten vollständig angezeigt
+- Kurzmeldungen erscheinen jetzt auch vor geöffneten Fenstern
+
 ## 0.2.2 – 19.11.2026
 
 ### Geändert

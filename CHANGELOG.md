@@ -4,6 +4,21 @@
 
 All notable changes to Task Organizer. Versions follow [Semantic Versioning](https://semver.org/); 0.x versions are beta.
 
+## 0.3.0 – 2026-11-19
+
+### Added
+- Customer import with preview: select or deselect each contact (all selected by default) and fix fields directly
+- Automatic column detection for CSV files (e.g. company, first name, last name, mobile) with a mapping you can change; progress bar while converting
+- Clean-up on import: spaces, email addresses, Swiss phone format (e.g. 079 539 95 32 → +41 79 539 95 32), Excel/Windows character set, duplicate entries within the file
+- Existing customers: merge (default), keep existing or replace – per contact
+- vCard import (.vcf), e.g. from Apple Contacts or Outlook
+- Settings › Customers: checkboxes for multi-select and "Delete selected", "Find duplicates" with merge
+- Customer window: "Import" button next to "Edit customer details"
+
+### Changed
+- Phone numbers are shown in full in the customer lists
+- Short messages now appear above open windows
+
 ## 0.2.2 – 2026-11-19
 
 ### Changed

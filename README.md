@@ -14,7 +14,7 @@ A kanban board for chores, tasks and to-dos – split into <b>Private</b> and <b
 No server, no account, no internet connection needed.
 </p>
 
-<p align="center"><b>Version 0.2.2 (beta)</b> · <a href="CHANGELOG.md">Changelog</a> · <a href="https://alpine-marmot.github.io/task-organizer/">Open the app</a></p>
+<p align="center"><b>Version 0.3.0 (beta)</b> · <a href="CHANGELOG.md">Changelog</a> · <a href="https://alpine-marmot.github.io/task-organizer/">Open the app</a></p>
 
 ![Task Organizer in dark mode](screenshots/dark.png)
 
@@ -26,6 +26,8 @@ No server, no account, no internet connection needed.
 - **Categories with colours:** created automatically the first time you type them, then suggested; the colour shows as the card's edge
 - **Customers** (business area): created automatically, suggested while typing, with contact person, phone and email
 - **Customer card:** clickable phone and email, all open tasks by column, done and archived tasks, "New task for …"
+- **Customer import** from CSV (Excel, Outlook …) or vCard (.vcf, Apple Contacts): columns are detected automatically and can be remapped, data is cleaned up (Swiss phone format, email, character set), preview with select/deselect and duplicate handling (merge, keep, replace)
+- **Manage customers:** select several with checkboxes and delete them together, find and merge duplicates
 - **Recurring tasks:** daily, weekly, every 2 weeks, monthly, yearly or a custom interval – counted from completion or on a fixed schedule
 - **Sorting per column:** priority, date added, due date, colour or manual
 - **Drag and drop** between and within columns, plus a "Move to …" menu on every card
@@ -59,6 +61,7 @@ Open <https://alpine-marmot.github.io/task-organizer/> and set up a data file as
 | Switch area | Tabs at the top or `Alt+B` |
 | Customer card | Click the blue customer chip on a card, or the "Customers" button |
 | Archive | "Archive" on a done card, "Archive all", or automatically |
+| Import customers | "Import" in the customer window or Settings › Customers |
 
 ### Recurring tasks
 
@@ -70,6 +73,21 @@ Choose under **Repeat** how often a task comes up:
 As soon as a card lands in **Done**, the next one is prepared in **Planned**. It only appears shortly before it's due – the same day for daily tasks, otherwise 2 days before. Prepared cards are listed at the bottom of "Planned" under "upcoming repeats".
 
 ![Edit window with repeat options](screenshots/task-en.png)
+
+### Importing customers
+
+Click **Import** in the customer window or under *Settings › Customers* and choose a CSV file (Excel, Outlook …) or a vCard (.vcf, e.g. from Apple Contacts).
+
+1. A progress bar shows the conversion.
+2. **Column mapping:** columns such as *Company*, *First name*, *Last name*, *Mobile* or *Email* are detected automatically. Change any mapping with the drop-down – the preview updates right away.
+3. **Clean-up:** extra spaces are removed, email addresses are lowercased, Swiss phone numbers are formatted (`079 000 11 22` → `+41 79 000 11 22`), Excel/Windows characters (ä, ö, ü) are fixed, and duplicates within the file are merged.
+4. **Preview:** all contacts are selected – deselect the ones you don't want and fix fields directly. For customers that already exist, choose *Merge* (fill empty fields, default), *Keep existing* or *Replace with import*.
+
+![Import preview with column mapping](screenshots/import-de.png)
+
+Under *Settings › Customers* you can tick several customers and delete them together, and **Find duplicates** merges entries with the same name (case, accents and punctuation are ignored) – their tasks are moved to the entry you keep.
+
+![Customer list with multi-select](screenshots/customers-de.png)
 
 ### Keyboard shortcuts
 
@@ -102,7 +120,7 @@ Saving to a file uses the *File System Access API*, which only Chromium-based br
 | | |
 |---|---|
 | **Where data is stored** | Only in the data file you choose and in the browser storage (localStorage / IndexedDB) on your computer |
-| **Internet** | The app makes **no** network requests: no tracking, no cookies, no fonts or libraries from the internet |
+| **Internet** | The app makes **no** network requests – imported files are processed only in your browser: no tracking, no cookies, no fonts or libraries from the internet |
 | **Author** | sees nothing – there is no server |
 | **GitHub Pages** | When you open the online version, GitHub receives the usual access data (e.g. IP address) like for any website. Your tasks are not sent |
 

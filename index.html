@@ -6,10 +6,20 @@
 <title>Task Organizer</title>
 <!--
   Task Organizer
-  Version 0.2.2 (Beta) · by alpine-marmot · 2026
+  Version 0.3.0 (Beta) · by alpine-marmot · 2026
   https://github.com/alpine-marmot/task-organizer · MIT-Lizenz
 
   CHANGELOG
+  0.3.0 – 19.11.2026
+    - Kunden-Import mit Vorschau: Kontakte einzeln an- und abwählen (alle vorausgewählt), Felder direkt korrigieren
+    - Spalten der CSV werden automatisch erkannt (z. B. Firma, Vorname, Nachname, Mobile) und lassen sich per Auswahl neu zuordnen; Ladebalken während der Umwandlung
+    - Bereinigung beim Import: Leerzeichen, E-Mail-Adressen, Telefonnummern im Schweizer Format, Excel-Zeichensatz, doppelte Einträge in der Datei
+    - Doppelte Kunden beim Import: pro Kontakt zusammenführen (Standard), bestehenden behalten oder ersetzen
+    - vCard-Import (.vcf), z. B. aus Apple Kontakte oder Outlook
+    - Einstellungen › Kunden: Mehrfachauswahl mit Kästchen und «Ausgewählte löschen», «Doppelte finden» mit Zusammenführen
+    - Kunden-Fenster: Knopf «Importieren» neben «Kundendaten bearbeiten»
+    - Telefonnummern werden in den Kundenlisten vollständig angezeigt
+    - Kurzmeldungen erscheinen jetzt auch vor geöffneten Fenstern
   0.2.2 – 19.11.2026
     - Veröffentlichung auf GitHub: Autor «alpine-marmot», Fusszeile mit Logo und Links zu Repository und Profil
   0.2.1 – 18.11.2026
@@ -186,6 +196,28 @@ button.pill.cust:hover{text-decoration:underline}
 .mini:hover{border-color:var(--border-strong)}
 .mini b{font-weight:600}
 .cust-list td{cursor:pointer}
+.cust-list td.nowrap,.list-table td.phone{white-space:nowrap}
+.list-table td.phone{min-width:175px}
+input[type=checkbox]{width:16px;height:16px;padding:0;margin:0;accent-color:var(--accent);cursor:pointer;vertical-align:middle}
+.list-table td.chk,.list-table th.chk,.imp-table td.chk,.imp-table th.chk{width:34px;text-align:center}
+.bulkbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.progress{height:10px;border-radius:999px;background:var(--surface2);overflow:hidden;border:1px solid var(--border)}
+.progress>div{height:100%;width:0;background:var(--accent);transition:width .12s linear}
+.imp-sec{border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin:10px 0}
+.imp-sec h3{margin:0 0 6px;font-size:14px;font-weight:600}
+.imp-table input[type=text]{padding:4px 7px;font-size:13px}
+.imp-table td{padding:4px 6px}
+.imp-table tr.off td{opacity:.45}
+.imp-table select{width:auto;font-size:12px;padding:3px 6px}
+.pill.new{background:var(--green-bg);color:var(--green-text);border-color:transparent}
+.map-table select{width:auto;min-width:170px}
+.map-table td.ex{color:var(--muted);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dup-group{border:1px solid var(--border);border-radius:12px;padding:8px 12px;margin:10px 0}
+.dup-group.off{opacity:.5}
+.dup-group label.dup-head{display:flex;gap:8px;align-items:center;margin:0 0 6px;color:var(--text);font-size:14px;font-weight:600}
+.dup-row{display:flex;gap:10px;align-items:center;padding:5px 0;border-top:1px solid var(--border);font-size:13px;flex-wrap:wrap}
+.dup-row input[type=radio]{width:16px;height:16px;accent-color:var(--accent)}
+.dup-row .sub{color:var(--muted)}
 .cust-list tr:hover td{background:var(--surface2)}
 .due-row input{width:180px}
 
@@ -225,6 +257,7 @@ td .sub{font-size:12px;color:var(--muted);white-space:pre-wrap}
 .banner{margin:12px 18px 0;padding:10px 14px;border-radius:var(--radius);background:var(--warn-bg);color:var(--warn-text);display:flex;align-items:center;gap:10px;font-size:14px;flex-wrap:wrap}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;z-index:100;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
+.toast[popover]{inset:auto;bottom:20px;left:50%;right:auto;top:auto;margin:0;border:none;overflow:visible}
 </style>
 </head>
 <body>
@@ -339,6 +372,20 @@ td .sub{font-size:12px;color:var(--muted);white-space:pre-wrap}
   <div class="dlg-foot" id="custFoot"></div>
 </dialog>
 
+<!-- Kunden-Import -->
+<dialog id="dlgImport" class="wide">
+  <div class="dlg-head"><h2 id="impTitle"></h2><span class="version" id="impFile"></span><button class="ghost icon" data-close data-i18n-title="btnClose"></button></div>
+  <div class="dlg-body dlg-scroll" id="impBody"></div>
+  <div class="dlg-foot"><span class="hint" id="impCount" style="margin:0"></span><div class="spacer"></div><button data-close data-i18n="btnCancel">Abbrechen</button><button id="impGo" class="primary"></button></div>
+</dialog>
+
+<!-- Doppelte Kunden -->
+<dialog id="dlgDupes" class="wide">
+  <div class="dlg-head"><h2 data-i18n="dupTitle">Doppelte Kunden</h2><button class="ghost icon" data-close data-i18n-title="btnClose"></button></div>
+  <div class="dlg-body dlg-scroll" id="dupBody"></div>
+  <div class="dlg-foot"><div class="spacer"></div><button data-close data-i18n="btnCancel">Abbrechen</button><button id="dupGo" class="primary"></button></div>
+</dialog>
+
 <!-- Einstellungen -->
 <dialog id="dlgSettings" class="wide">
   <div class="dlg-head"><h2 data-i18n="settings">Einstellungen</h2><button class="ghost icon" data-close data-i18n-title="btnClose"></button></div>
@@ -359,13 +406,13 @@ td .sub{font-size:12px;color:var(--muted);white-space:pre-wrap}
 </dialog>
 
 <input type="file" id="fileImport" accept=".json,application/json" class="hidden">
-<input type="file" id="fileCsv" accept=".csv,.txt,text/csv,text/plain" class="hidden">
-<div id="toast" class="toast"></div>
+<input type="file" id="fileCsv" accept=".csv,.txt,.vcf,text/csv,text/plain,text/vcard,text/x-vcard" class="hidden">
+<div id="toast" class="toast" popover="manual"></div>
 
 <script>
 'use strict';
 const APP_NAME = 'Task Organizer';
-const APP_VERSION = '0.2.2';
+const APP_VERSION = '0.3.0';
 const APP_AUTHOR = 'alpine-marmot';
 const REPO_URL = 'https://github.com/alpine-marmot/task-organizer';
 const PROFILE_URL = 'https://github.com/alpine-marmot';
@@ -374,6 +421,7 @@ const LOGO_DARK = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC4AAAAwCAYAAAB
 const RELEASE_YEAR = '2026';
 const LS_KEY = 'to_state_v1';
 const CHANGELOG = [
+  { v: '0.3.0', d: '19.11.2026', de: 'Kunden-Import mit Vorschau (an-/abwählen, Felder korrigieren), automatische Spaltenerkennung mit Zuordnung und Ladebalken, Bereinigung (Telefon im Schweizer Format, E-Mail, Zeichensatz), Umgang mit Doppelten (zusammenführen, behalten, ersetzen), vCard-Import, Mehrfachauswahl zum Löschen, «Doppelte finden», Import-Knopf im Kunden-Fenster, Telefonnummern vollständig sichtbar, Kurzmeldungen vor geöffneten Fenstern.', en: 'Customer import with preview (select/deselect, fix fields), automatic column detection with mapping and progress bar, clean-up (Swiss phone format, email, character set), duplicate handling (merge, keep, replace), vCard import, multi-select delete, “Find duplicates”, import button in the customer window, phone numbers shown in full, short messages shown above open windows.' },
   { v: '0.2.2', d: '19.11.2026', de: 'Veröffentlichung auf GitHub: Autor «alpine-marmot», Fusszeile mit Logo und Links zu Repository und Profil.', en: 'Published on GitHub: author “alpine-marmot”, footer with logo and links to the repository and profile.' },
   { v: '0.2.1', d: '18.11.2026', de: 'Doppelklick auf die leere Fläche der Spalten Offen, Geplant oder Warten öffnet «Neue Aufgabe» mit dieser Spalte vorausgewählt.', en: 'Double-clicking the empty area of the Open, Planned or Waiting column opens “New task” with that column preselected.' },
   { v: '0.2.0', d: '14.11.2026', de: 'Wiederkehrende Aufgaben (ab Erledigt oder nach festem Plan, neue Karte erscheint kurz vor der Fälligkeit in «Geplant»), Kunden-Ansicht mit Kundenkarte und Aufgabenliste, neues Kundenfeld «Ansprechperson».', en: 'Recurring tasks (from completion or on a fixed schedule; the next card appears in “Planned” shortly before it’s due), customer view with customer card and task list, new customer field “Contact person”.' },
@@ -426,8 +474,8 @@ const I18N = {
     setShortcuts: 'Tastenkürzel', version: 'Version {v} (Beta)',
     catAdd: 'Kategorie hinzufügen', catEmpty: 'Noch keine Kategorien. Sie entstehen automatisch beim Erfassen einer Aufgabe.', catHint: 'Eine geänderte Farbe gilt sofort für alle Aufgaben dieser Kategorie.',
     catDeleteTitle: 'Kategorie löschen?', catDeleteText: '{n} Aufgabe(n) verlieren diese Kategorie.', newCatName: 'Neue Kategorie',
-    custAdd: 'Kunde hinzufügen', custImport: 'CSV importieren', custEmpty: 'Noch keine Kunden. Sie entstehen automatisch beim Erfassen einer geschäftlichen Aufgabe.',
-    custHintCsv: 'CSV-Format: Name;Telefon;E-Mail;Ansprechperson – eine Zeile pro Kunde.', custImported: '{n} Kunden importiert',
+    custAdd: 'Kunde hinzufügen', custImport: 'Importieren (CSV, vCard)', custEmpty: 'Noch keine Kunden. Sie entstehen automatisch beim Erfassen einer geschäftlichen Aufgabe.',
+    custHintCsv: 'Import: CSV (z. B. aus Excel oder Outlook) oder vCard (.vcf, z. B. aus Apple Kontakte). Die Spalten werden automatisch erkannt, vor dem Import erscheint eine Vorschau.', custImported: '{n} Kunden importiert',
     custDeleteTitle: 'Kunde löschen?', custDeleteText: '{n} Aufgabe(n) verlieren diesen Kunden.',
     statusBrowserOnly: 'Nur im Browser', statusSaved: 'Gespeichert {time}', statusSaving: 'Speichert …', statusError: 'Fehler beim Speichern', statusReconnect: 'Datei verbinden', statusNoFs: 'Nur im Browser',
     statusTip: 'Speicherort in den Einstellungen',
@@ -440,7 +488,7 @@ const I18N = {
     hColsT: 'Die vier Spalten', hColOpen: 'neu erfasst, noch nicht eingeplant.', hColPlanned: 'Sie wissen, wann Sie es erledigen.', hColWaiting: 'angefangen, wartet aber auf etwas – eine Rückmeldung, eine Lieferung, einen Termin.', hColDone: 'fertig. Wird nach der eingestellten Frist automatisch archiviert.',
     hAreasT: 'Privat und Geschäftlich', hAreas: 'Oben wechseln Sie zwischen den Bereichen (Alt+B). Jeder Bereich hat eigene Aufgaben und Kategorien. Kunden gibt es nur im geschäftlichen Bereich.',
     hCatT: 'Kategorien und Farben', hCat: 'Tippen Sie eine Kategorie ein. Ist sie neu, wird sie beim Speichern angelegt und bekommt die nächste freie Farbe. Danach wird sie vorgeschlagen. Die Farbe wählen Sie direkt beim Erfassen oder in den Einstellungen unter «Kategorien». Sie gilt für alle Aufgaben dieser Kategorie und erscheint als farbiger Rand der Karte.',
-    hCustT: 'Kunden', hCust: 'Im geschäftlichen Bereich hat jede Aufgabe ein Feld «Kunde». Neue Kunden werden beim Speichern angelegt, bekannte vorgeschlagen. Ansprechperson, Telefon und E-Mail gehören zum Kunden: Ändern Sie sie in einer Aufgabe, gilt das für alle Aufgaben dieses Kunden. Ein Klick auf den blauen Kunden-Chip einer Karte oder der Knopf «Kunden» öffnet die Kundenkarte: Kontaktdaten zum Anklicken, alle offenen Aufgaben nach Spalte, erledigte und archivierte Aufgaben sowie «Neue Aufgabe für …». Die Kundenliste zum Bearbeiten finden Sie in den Einstellungen, inklusive CSV-Import.',
+    hCustT: 'Kunden', hCust: 'Im geschäftlichen Bereich hat jede Aufgabe ein Feld «Kunde». Neue Kunden werden beim Speichern angelegt, bekannte vorgeschlagen. Ansprechperson, Telefon und E-Mail gehören zum Kunden: Ändern Sie sie in einer Aufgabe, gilt das für alle Aufgaben dieses Kunden. Ein Klick auf den blauen Kunden-Chip einer Karte oder der Knopf «Kunden» öffnet die Kundenkarte: Kontaktdaten zum Anklicken, alle offenen Aufgaben nach Spalte, erledigte und archivierte Aufgaben sowie «Neue Aufgabe für …». Die Kundenliste zum Bearbeiten finden Sie in den Einstellungen. Dort wählen Sie mit den Kästchen mehrere Kunden aus und löschen sie gemeinsam, finden doppelte Kunden und führen sie zusammen. Über «Importieren» holen Sie Kontakte aus einer CSV-Datei (z. B. Excel oder Outlook) oder einer vCard (.vcf, z. B. Apple Kontakte): Die Spalten werden automatisch erkannt und lassen sich neu zuordnen, Telefonnummern kommen ins Schweizer Format, und in der Vorschau wählen Sie, welche Kontakte übernommen werden und was mit bereits vorhandenen geschieht.',
     hPrioT: 'Priorität und Fälligkeit', hPrio: 'Priorität 1 ist am wichtigsten, 3 am wenigsten wichtig. Priorität 1 ist auf der Karte rot markiert. Überfällige Aufgaben sind rot, heute fällige gelb.',
     hSortT: 'Sortieren', hSort: 'Jede Spalte hat oben ein eigenes Menü: nach Priorität, Erfassungsdatum (neueste zuerst), Fälligkeit, Farbe (nach Kategorie) oder manuell.',
     hDndT: 'Verschieben', hDnd: 'Ziehen Sie eine Karte mit der Maus in eine andere Spalte. Innerhalb einer Spalte bestimmen Sie so die Reihenfolge; ist die Spalte anders sortiert, wechselt sie dabei auf «Manuell». Ohne Ziehen geht es über das Pfeil-Symbol auf der Karte («Verschieben nach …») oder im Bearbeiten-Fenster unter «Spalte». Ein Klick auf die Karte öffnet sie zum Bearbeiten. Ein Doppelklick auf eine leere Stelle in den Spalten Offen, Geplant oder Warten öffnet «Neue Aufgabe» – die Spalte ist dabei schon vorausgewählt.',
@@ -459,6 +507,18 @@ const I18N = {
     dgOpenSub: 'neu erfasst', dgPlannedSub: 'eingeplant', dgWaitingSub: 'wartet auf etwas', dgDoneSub: 'fertig',
     dgArchive: 'Archiv', dgArchiveSub: 'durchsuchbar, CSV', dgArchiving: 'Knopf oder nach {n} Tagen', dgArchivingOff: 'per Knopf', dgRestore: 'wiederherstellen',
     csvFile: 'task-organizer_archiv',
+    custDelSel: 'Ausgewählte löschen ({n})', custSelAll: 'Alle auswählen', custDelSelTitle: '{n} Kunden löschen?', custDelSelText: 'Das kann nicht rückgängig gemacht werden. {m} Aufgabe(n) verlieren ihren Kunden.', custDeletedN: '{n} Kunden gelöscht',
+    custFindDupes: 'Doppelte finden', custImportShort: 'Importieren',
+    impTitle: 'Kunden importieren', impConverting: 'Datei wird umgewandelt …', impConverted: 'Umgewandelt: {n} Zeilen', impMapping: 'Spalten-Zuordnung', impMapHint: 'Die Spalten wurden automatisch erkannt. Bei Bedarf hier korrigieren – die Vorschau passt sich sofort an.',
+    impHeaderRow: 'Erste Zeile enthält Überschriften', thColumn: 'Spalte', thHeading: 'Überschrift', thExample: 'Beispiel', thAssign: 'Zuordnung', thImpStatus: 'Status',
+    map_ignore: '– ignorieren –', map_name: 'Name / Firma', map_contact: 'Ansprechperson', map_first: 'Vorname', map_last: 'Nachname', map_phone: 'Telefon', map_email: 'E-Mail',
+    impNoName: 'Bitte eine Spalte als «Name / Firma» oder «Vorname»/«Nachname» zuordnen.', impEmpty: 'In der Datei wurden keine Kontakte gefunden.',
+    impSummary: '{n} Kontakte erkannt · {neu} neu · {ex} schon vorhanden', impSkipped: '{n} Zeile(n) ohne Name übersprungen', impMergedFile: '{n} doppelte Einträge in der Datei zusammengeführt', impEncoding: 'Zeichensatz von Excel/Windows erkannt und umgewandelt.',
+    impPreview: 'Vorschau', impPreviewHint: 'Felder lassen sich hier direkt korrigieren. Nur ausgewählte Kontakte werden importiert.', impVcf: 'vCard-Datei: Firma wird zum Namen, die Person zur Ansprechperson.',
+    impNew: 'Neu', act_merge: 'Zusammenführen', act_keep: 'Bestehenden behalten', act_replace: 'Durch Import ersetzen', impExists: 'Vorhanden: {name}',
+    impSelected: '{n} von {m} ausgewählt', impBtn: 'Importieren ({n})', impResult: 'Import: {neu} neu, {merged} zusammengeführt, {replaced} ersetzt, {kept} behalten', impBad: 'Die Datei konnte nicht gelesen werden.',
+    dupTitle: 'Doppelte Kunden', dupHint: 'Gleiche Namen werden erkannt, auch wenn sich Gross-/Kleinschreibung, Akzente, Leer- oder Satzzeichen unterscheiden. Wähle pro Gruppe den Eintrag, der bleibt: Leere Felder werden aus den anderen ergänzt, deren Aufgaben übernommen, danach werden sie gelöscht.',
+    dupNone: 'Keine doppelten Kunden gefunden.', dupKeep: 'bleibt', dupMergeGroup: 'Zusammenführen', dupBtn: 'Zusammenführen ({n})', dupDone: '{n} Gruppe(n) zusammengeführt',
     fRepeat: 'Wiederholen', rep_none: 'Nie', rep_d1: 'Täglich', rep_w1: 'Wöchentlich', rep_w2: 'Alle 2 Wochen', rep_m1: 'Monatlich', rep_y1: 'Jährlich', rep_custom: 'Eigene …',
     rl_d1: 'täglich', rl_w1: 'wöchentlich', rl_w2: 'alle 2 Wochen', rl_m1: 'monatlich', rl_y1: 'jährlich', rlCustom: 'alle {n} {unit}',
     repEvery: 'alle', unit_day: 'Tage', unit_week: 'Wochen', unit_month: 'Monate', unit_year: 'Jahre',
@@ -511,8 +571,8 @@ const I18N = {
     setShortcuts: 'Keyboard shortcuts', version: 'Version {v} (beta)',
     catAdd: 'Add category', catEmpty: 'No categories yet. They’re created automatically when you add a task.', catHint: 'A changed colour applies to all tasks in that category right away.',
     catDeleteTitle: 'Delete category?', catDeleteText: '{n} task(s) lose this category.', newCatName: 'New category',
-    custAdd: 'Add customer', custImport: 'Import CSV', custEmpty: 'No customers yet. They’re created automatically when you add a business task.',
-    custHintCsv: 'CSV format: Name;Phone;Email;Contact person – one line per customer.', custImported: '{n} customers imported',
+    custAdd: 'Add customer', custImport: 'Import (CSV, vCard)', custEmpty: 'No customers yet. They’re created automatically when you add a business task.',
+    custHintCsv: 'Import: CSV (e.g. from Excel or Outlook) or vCard (.vcf, e.g. from Apple Contacts). Columns are detected automatically and a preview appears before importing.', custImported: '{n} customers imported',
     custDeleteTitle: 'Delete customer?', custDeleteText: '{n} task(s) lose this customer.',
     statusBrowserOnly: 'Browser only', statusSaved: 'Saved {time}', statusSaving: 'Saving…', statusError: 'Save failed', statusReconnect: 'Connect file', statusNoFs: 'Browser only',
     statusTip: 'Storage in settings',
@@ -525,7 +585,7 @@ const I18N = {
     hColsT: 'The four columns', hColOpen: 'just added, not scheduled yet.', hColPlanned: 'you know when you’ll do it.', hColWaiting: 'started, but waiting on something – a reply, a delivery, an appointment.', hColDone: 'finished. Archived automatically after the set period.',
     hAreasT: 'Private and Business', hAreas: 'Switch areas at the top (Alt+B). Each area has its own tasks and categories. Customers exist only in the business area.',
     hCatT: 'Categories and colours', hCat: 'Type a category. If it’s new, it’s created when you save and gets the next free colour. After that it’s suggested. Pick the colour while adding a task or in Settings under “Categories”. It applies to every task in that category and shows as the card’s coloured edge.',
-    hCustT: 'Customers', hCust: 'In the business area every task has a “Customer” field. New customers are created when you save, known ones are suggested. Contact person, phone and email belong to the customer: change them in one task and it applies to all of that customer’s tasks. Click the blue customer chip on a card or the “Customers” button to open the customer card: clickable contact details, all open tasks by column, done and archived tasks, and “New task for …”. The editable customer list is in Settings, including CSV import.',
+    hCustT: 'Customers', hCust: 'In the business area every task has a “Customer” field. New customers are created when you save, known ones are suggested. Contact person, phone and email belong to the customer: change them in one task and it applies to all of that customer’s tasks. Click the blue customer chip on a card or the “Customers” button to open the customer card: clickable contact details, all open tasks by column, done and archived tasks, and “New task for …”. The editable customer list is in Settings. There you can tick several customers and delete them together, and find and merge duplicates. “Import” brings in contacts from a CSV file (e.g. Excel or Outlook) or a vCard (.vcf, e.g. Apple Contacts): columns are detected automatically and can be remapped, Swiss phone numbers are formatted, and in the preview you choose which contacts to take over and what happens to existing ones.',
     hPrioT: 'Priority and due date', hPrio: 'Priority 1 is the most important, 3 the least. Priority 1 is marked red on the card. Overdue tasks are red, tasks due today yellow.',
     hSortT: 'Sorting', hSort: 'Each column has its own menu: by priority, date added (newest first), due date, colour (by category) or manual.',
     hDndT: 'Moving cards', hDnd: 'Drag a card to another column. Within a column, dragging sets the order; if the column is sorted differently, it switches to “Manual”. Without dragging, use the arrow icon on the card (“Move to …”) or “Column” in the edit window. Click a card to edit it. Double-click an empty spot in the Open, Planned or Waiting column to open “New task” with that column preselected.',
@@ -544,6 +604,18 @@ const I18N = {
     dgOpenSub: 'just added', dgPlannedSub: 'scheduled', dgWaitingSub: 'waiting on something', dgDoneSub: 'finished',
     dgArchive: 'Archive', dgArchiveSub: 'searchable, CSV', dgArchiving: 'button or after {n} days', dgArchivingOff: 'button', dgRestore: 'restore',
     csvFile: 'task-organizer_archive',
+    custDelSel: 'Delete selected ({n})', custSelAll: 'Select all', custDelSelTitle: 'Delete {n} customers?', custDelSelText: 'This can’t be undone. {m} task(s) lose their customer.', custDeletedN: '{n} customers deleted',
+    custFindDupes: 'Find duplicates', custImportShort: 'Import',
+    impTitle: 'Import customers', impConverting: 'Converting file …', impConverted: 'Converted: {n} rows', impMapping: 'Column mapping', impMapHint: 'Columns were detected automatically. Correct them here if needed – the preview updates right away.',
+    impHeaderRow: 'First row contains headings', thColumn: 'Column', thHeading: 'Heading', thExample: 'Example', thAssign: 'Mapped to', thImpStatus: 'Status',
+    map_ignore: '– ignore –', map_name: 'Name / company', map_contact: 'Contact person', map_first: 'First name', map_last: 'Last name', map_phone: 'Phone', map_email: 'Email',
+    impNoName: 'Map one column to “Name / company” or “First name”/“Last name”.', impEmpty: 'No contacts found in the file.',
+    impSummary: '{n} contacts found · {neu} new · {ex} already exist', impSkipped: '{n} row(s) without a name skipped', impMergedFile: '{n} duplicate entries in the file merged', impEncoding: 'Excel/Windows character set detected and converted.',
+    impPreview: 'Preview', impPreviewHint: 'You can fix fields right here. Only selected contacts are imported.', impVcf: 'vCard file: the company becomes the name, the person the contact person.',
+    impNew: 'New', act_merge: 'Merge', act_keep: 'Keep existing', act_replace: 'Replace with import', impExists: 'Exists: {name}',
+    impSelected: '{n} of {m} selected', impBtn: 'Import ({n})', impResult: 'Import: {neu} new, {merged} merged, {replaced} replaced, {kept} kept', impBad: 'The file couldn’t be read.',
+    dupTitle: 'Duplicate customers', dupHint: 'Matching names are found even if case, accents, spaces or punctuation differ. Pick the entry to keep in each group: empty fields are filled from the others, their tasks are moved over, then they’re deleted.',
+    dupNone: 'No duplicate customers found.', dupKeep: 'keep', dupMergeGroup: 'Merge', dupBtn: 'Merge ({n})', dupDone: '{n} group(s) merged',
     fRepeat: 'Repeat', rep_none: 'Never', rep_d1: 'Daily', rep_w1: 'Weekly', rep_w2: 'Every 2 weeks', rep_m1: 'Monthly', rep_y1: 'Yearly', rep_custom: 'Custom …',
     rl_d1: 'daily', rl_w1: 'weekly', rl_w2: 'every 2 weeks', rl_m1: 'monthly', rl_y1: 'yearly', rlCustom: 'every {n} {unit}',
     repEvery: 'every', unit_day: 'days', unit_week: 'weeks', unit_month: 'months', unit_year: 'years',
@@ -705,8 +777,10 @@ function t(key, vars) {
 }
 let toastTimer = null;
 function toast(msg) {
-  const el = $('toast'); el.textContent = msg; el.classList.add('show');
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+  const el = $('toast'); el.textContent = msg;
+  try { if (el.showPopover) { if (el.matches(':popover-open')) el.hidePopover(); el.showPopover(); } } catch (e) { /* ohne Popover-Unterstützung */ }
+  el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.classList.remove('show'); setTimeout(() => { try { if (el.hidePopover && el.matches(':popover-open')) el.hidePopover(); } catch (e) { } }, 250); }, 2600);
 }
 const curArea = () => state.settings.area;
 const catById = id => id ? state.categories.find(c => c.id === id) || null : null;
@@ -1528,7 +1602,7 @@ function custListTable() {
   if (!state.customers.length) return '<p class="hint">' + esc(t('custEmpty')) + '</p>';
   if (!list.length) return '<p class="empty">' + esc(t('archNoHits')) + '</p>';
   return '<table class="cust-list"><thead><tr><th>' + esc(t('thName')) + '</th><th>' + esc(t('thContact')) + '</th><th>' + esc(t('thPhone')) + '</th><th style="width:70px">' + esc(t('col_open')) + '</th><th style="width:80px">' + esc(t('col_done')) + '</th></tr></thead><tbody>'
-    + list.map(c => { const ts = custTasks(c.id); return '<tr data-kid="' + c.id + '" tabindex="0"><td><b style="font-weight:600">' + esc(c.name || '–') + '</b></td><td>' + esc(c.contact) + '</td><td>' + esc(c.phone) + '</td><td>' + ts.filter(isOpenTask).length + '</td><td>' + ts.filter(x => !isOpenTask(x)).length + '</td></tr>'; }).join('')
+    + list.map(c => { const ts = custTasks(c.id); return '<tr data-kid="' + c.id + '" tabindex="0"><td><b style="font-weight:600">' + esc(c.name || '–') + '</b></td><td>' + esc(c.contact) + '</td><td class="nowrap">' + esc(c.phone) + '</td><td>' + ts.filter(isOpenTask).length + '</td><td>' + ts.filter(x => !isOpenTask(x)).length + '</td></tr>'; }).join('')
     + '</tbody></table>';
 }
 function renderCustomer() {
@@ -1539,7 +1613,7 @@ function renderCustomer() {
     $('custBack').classList.add('hidden');
     body.innerHTML = '<div class="arch-tools"><input id="custSearch" type="search" style="width:280px" autocomplete="off" placeholder="' + esc(t('custSearchPh')) + '" value="' + esc(custQuery) + '"></div><div id="custTable">' + custListTable() + '</div>';
     $('custSearch').oninput = e => { custQuery = e.target.value; $('custTable').innerHTML = custListTable(); };
-    foot.innerHTML = '<button data-edit>' + icon('edit') + esc(t('custEditData')) + '</button><div class="spacer"></div><button data-close-c class="primary">' + esc(t('btnClose')) + '</button>';
+    foot.innerHTML = '<button data-edit>' + icon('edit') + esc(t('custEditData')) + '</button><button data-import>' + icon('upload') + esc(t('custImportShort')) + '</button><div class="spacer"></div><button data-close-c class="primary">' + esc(t('btnClose')) + '</button>';
     return;
   }
   const k = custById(custView), ts = custTasks(k.id);
@@ -1579,6 +1653,7 @@ $('custBody').addEventListener('keydown', e => {
 $('custFoot').addEventListener('click', e => {
   if (e.target.closest('[data-new]')) openEditor(null, null, { area: 'business', customerId: custView });
   else if (e.target.closest('[data-edit]')) openSettings('customers');
+  else if (e.target.closest('[data-import]')) startImport();
   else if (e.target.closest('[data-close-c]')) $('dlgCustomer').close();
 });
 $('custBack').onclick = () => { custView = null; renderCustomer(); };
@@ -1612,11 +1687,13 @@ function renderSettings() {
       + '<div class="btnrow"><button id="stAddCat">' + icon('plus') + esc(t('catAdd')) + '</button></div><p class="hint">' + esc(t('catHint')) + '</p></div>';
   } else if (settingsTab === 'customers') {
     const custs = customersSorted();
+    custSel.forEach(id => { if (!custById(id)) custSel.delete(id); });
     html = '<div class="set-sec"><h3>' + icon('users') + esc(t('tabCustomers')) + '</h3>'
-      + (custs.length ? '<table class="list-table"><thead><tr><th>' + esc(t('thName')) + '</th><th>' + esc(t('thContact')) + '</th><th style="width:150px">' + esc(t('thPhone')) + '</th><th>' + esc(t('thEmail')) + '</th><th style="width:70px">' + esc(t('thCount')) + '</th><th style="width:40px"></th></tr></thead><tbody>'
-        + custs.map(c => '<tr data-kid="' + c.id + '"><td><input data-f="name" value="' + esc(c.name) + '"></td><td><input data-f="contact" value="' + esc(c.contact) + '"></td><td><input data-f="phone" value="' + esc(c.phone) + '"></td><td><input data-f="email" value="' + esc(c.email) + '"></td><td>' + countTasksWith('customerId', c.id) + '</td><td><button class="ghost icon" data-del-cust title="' + esc(t('btnDelete')) + '" aria-label="' + esc(t('btnDelete')) + '">' + icon('trash') + '</button></td></tr>').join('')
+      + (custs.length ? '<div class="bulkbar hidden" id="stBulk"><button id="stDelSel" class="danger">' + icon('trash') + '<span></span></button></div>' : '')
+      + (custs.length ? '<table class="list-table"><thead><tr><th class="chk"><input type="checkbox" id="stCustAll" title="' + esc(t('custSelAll')) + '" aria-label="' + esc(t('custSelAll')) + '"></th><th>' + esc(t('thName')) + '</th><th>' + esc(t('thContact')) + '</th><th style="width:190px">' + esc(t('thPhone')) + '</th><th>' + esc(t('thEmail')) + '</th><th style="width:70px">' + esc(t('thCount')) + '</th><th style="width:40px"></th></tr></thead><tbody>'
+        + custs.map(c => '<tr data-kid="' + c.id + '"><td class="chk"><input type="checkbox" data-sel' + (custSel.has(c.id) ? ' checked' : '') + ' aria-label="' + esc(c.name) + '"></td><td><input data-f="name" value="' + esc(c.name) + '"></td><td><input data-f="contact" value="' + esc(c.contact) + '"></td><td class="phone"><input data-f="phone" value="' + esc(c.phone) + '"></td><td><input data-f="email" value="' + esc(c.email) + '"></td><td>' + countTasksWith('customerId', c.id) + '</td><td><button class="ghost icon" data-del-cust title="' + esc(t('btnDelete')) + '" aria-label="' + esc(t('btnDelete')) + '">' + icon('trash') + '</button></td></tr>').join('')
         + '</tbody></table>' : '<p class="hint">' + esc(t('custEmpty')) + '</p>')
-      + '<div class="btnrow"><button id="stAddCust">' + icon('plus') + esc(t('custAdd')) + '</button><button id="stCsv">' + icon('upload') + esc(t('custImport')) + '</button></div><p class="hint">' + esc(t('custHintCsv')) + '</p></div>';
+      + '<div class="btnrow"><button id="stAddCust">' + icon('plus') + esc(t('custAdd')) + '</button><button id="stCsv">' + icon('upload') + esc(t('custImport')) + '</button><button id="stDupes">' + icon('users') + esc(t('custFindDupes')) + '</button></div><p class="hint">' + esc(t('custHintCsv')) + '</p></div>';
   } else {
     let storage;
     if (!fsSupported) storage = '<p>' + esc(t('storageUnsupported')) + '</p>';
@@ -1638,7 +1715,13 @@ function bindSettings() {
   const b = $('setBody');
   const on = (id, fn) => { if ($(id)) $(id).onclick = fn; };
   on('stNew', newFile); on('stOpen', openFile); on('stReconnect', reconnectFile); on('stExport', exportBackup);
-  on('stImport', () => $('fileImport').click()); on('stCsv', () => $('fileCsv').click());
+  on('stImport', () => $('fileImport').click()); on('stCsv', startImport); on('stDupes', openDupes);
+  if ($('stCustAll')) {
+    $('stCustAll').onchange = e => { b.querySelectorAll('tr[data-kid] input[data-sel]').forEach(cb => { cb.checked = e.target.checked; const id = cb.closest('tr').dataset.kid; if (cb.checked) custSel.add(id); else custSel.delete(id); }); updateCustBulk(); };
+    b.querySelectorAll('tr[data-kid] input[data-sel]').forEach(cb => cb.onchange = () => { const id = cb.closest('tr').dataset.kid; if (cb.checked) custSel.add(id); else custSel.delete(id); updateCustBulk(); });
+    $('stDelSel').onclick = deleteSelectedCustomers;
+    updateCustBulk();
+  }
   if ($('stDays')) $('stDays').onchange = e => {
     let v = Math.round(Number(e.target.value)); if (!Number.isFinite(v) || v < 0) v = 0; if (v > 365) v = 365;
     state.settings.archiveDays = v; e.target.value = v; persist(); renderBoard(); runAutoArchive();
@@ -1676,7 +1759,7 @@ function bindSettings() {
     persist(); renderSettings();
     const inp = b.querySelector('tr[data-kid] input[value=""][data-f="name"]'); if (inp) inp.focus();
   });
-  b.querySelectorAll('tr[data-kid] input').forEach(inp => inp.addEventListener('input', e => {
+  b.querySelectorAll('tr[data-kid] input[data-f]').forEach(inp => inp.addEventListener('input', e => {
     const c = custById(e.target.closest('tr').dataset.kid); if (c) { c[e.target.dataset.f] = e.target.value; persistSoon(); renderBoard(); }
   }));
   b.querySelectorAll('[data-del-cust]').forEach(btn => btn.onclick = async () => {
@@ -1687,22 +1770,308 @@ function bindSettings() {
     persist(); renderSettings(); renderBoard();
   });
 }
+/* ---------- Kunden: Mehrfachauswahl ---------- */
+let custSel = new Set();
+function updateCustBulk() {
+  const all = $('stCustAll'); if (!all) return;
+  const boxes = Array.from(document.querySelectorAll('#setBody tr[data-kid] input[data-sel]'));
+  const n = boxes.filter(cb => cb.checked).length;
+  all.checked = n > 0 && n === boxes.length; all.indeterminate = n > 0 && n < boxes.length;
+  $('stBulk').classList.toggle('hidden', !n);
+  $('stDelSel').querySelector('span').textContent = t('custDelSel', { n });
+}
+async function deleteSelectedCustomers() {
+  const ids = Array.from(custSel).filter(id => custById(id)); if (!ids.length) return;
+  const m = state.tasks.filter(tk => ids.includes(tk.customerId)).length;
+  if (!await confirmDlg(t('custDelSelTitle', { n: ids.length }), t('custDelSelText', { m }), true)) return;
+  state.tasks.forEach(tk => { if (ids.includes(tk.customerId)) tk.customerId = null; });
+  state.customers = state.customers.filter(c => !ids.includes(c.id));
+  custSel.clear();
+  persist(); renderSettings(); renderBoard(); if ($('dlgCustomer').open) renderCustomer();
+  toast(t('custDeletedN', { n: ids.length }));
+}
+
+/* ---------- Kunden: Bereinigen ---------- */
+const nameKey = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+const normText = v => String(v == null ? '' : v).replace(/[\u00a0\s]+/g, ' ').trim();
+const normEmail = v => normText(v).replace(/^mailto:/i, '').replace(/\s/g, '').toLowerCase();
+function normPhone(v) {
+  const raw = normText(v); if (!raw) return '';
+  let d = raw.replace(/\(0\)/g, '').replace(/[^\d+]/g, '');
+  if (d.startsWith('00')) d = '+' + d.slice(2);
+  if (/^0\d{9}$/.test(d)) d = '+41' + d.slice(1);
+  if (/^41\d{9}$/.test(d)) d = '+' + d;
+  d = d.replace(/^\+410(\d{9})$/, '+41$1');
+  const m = d.match(/^\+41(\d{2})(\d{3})(\d{2})(\d{2})$/);
+  return m ? '+41 ' + m[1] + ' ' + m[2] + ' ' + m[3] + ' ' + m[4] : raw;
+}
+
+/* ---------- Kunden: Datei lesen ---------- */
+function detectSep(text) {
+  const first = text.split(/\r?\n/).find(l => l.trim()) || '';
+  let best = ';', bc = -1;
+  [';', ',', '\t'].forEach(sp => { let n = 0, q = false; for (const ch of first) { if (ch === '"') q = !q; else if (ch === sp && !q) n++; } if (n > bc) { bc = n; best = sp; } });
+  return best;
+}
+function parseCsv(text) {
+  const sep = detectSep(text), rows = [];
+  let row = [], fld = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { fld += '"'; i++; } else q = false; } else fld += c; }
+    else if (c === '"') q = true;
+    else if (c === sep) { row.push(fld); fld = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(fld); rows.push(row); row = []; fld = ''; }
+    else fld += c;
+  }
+  if (fld !== '' || row.length) { row.push(fld); rows.push(row); }
+  return rows.filter(r => r.some(x => x.trim()));
+}
+function parseVcf(text) {
+  const lines = text.replace(/\r?\n[ \t]/g, '').split(/\r?\n/), out = [];
+  const val = v => v.replace(/\\n/gi, ' ').replace(/\\([,;\\])/g, '$1');
+  let cur = null;
+  lines.forEach(l => {
+    const u = l.toUpperCase();
+    if (u.startsWith('BEGIN:VCARD')) { cur = { fn: '', n: '', org: '', tel: [], email: [] }; return; }
+    if (u.startsWith('END:VCARD')) { if (cur) out.push(cur); cur = null; return; }
+    if (!cur) return;
+    const i = l.indexOf(':'); if (i < 0) return;
+    const key = l.slice(0, i).split(';')[0].toUpperCase().replace(/^ITEM\d+\./, ''), v = l.slice(i + 1);
+    if (key === 'FN') cur.fn = val(v);
+    else if (key === 'N') { const p = v.split(';'); cur.n = [p[1], p[0]].map(x => val(x || '').trim()).filter(Boolean).join(' '); }
+    else if (key === 'ORG') cur.org = val(v.split(';')[0]);
+    else if (key === 'TEL') cur.tel.push(val(v));
+    else if (key === 'EMAIL') cur.email.push(val(v));
+  });
+  return out.map(c => { const person = normText(c.fn || c.n), org = normText(c.org); return [org || person, org ? person : '', c.tel[0] || '', c.email[0] || '']; });
+}
+
+/* ---------- Kunden: Import ---------- */
+const MAP_FIELDS = ['ignore', 'name', 'contact', 'first', 'last', 'phone', 'email'];
+const HEAD_RULES = [
+  ['ignore', /fax/i],
+  ['email', /e-?mail|^mail|courriel/i],
+  ['phone', /telefon|phone|^tel\b|^tel\.|mobil|natel|handy|nummer/i],
+  ['first', /vorname|first ?name|given ?name|prénom|prenom/i],
+  ['last', /nachname|last ?name|surname|family ?name|^nom$/i],
+  ['contact', /ansprech|kontaktperson|contact ?person|^kontakt$|^contact$/i],
+  ['name', /name|firma|company|organi[sz]|unternehmen|kunde|customer|business|betrieb|institution/i]
+];
+function headField(h) { h = normText(h); if (!h) return null; for (const r of HEAD_RULES) if (r[1].test(h)) return r[0]; return null; }
+let imp = null;
+function startImport() { $('fileCsv').click(); }
 $('fileCsv').addEventListener('change', async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-  const text = await f.text();
-  const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim());
-  if (!lines.length) return;
-  const sep = lines[0].includes(';') ? ';' : lines[0].includes('\t') ? '\t' : ',';
-  let added = 0;
-  lines.forEach((line, i) => {
-    const p = line.split(sep).map(x => x.trim().replace(/^"(.*)"$/, '$1'));
-    if (i === 0 && /^(name|kunde|customer)$/i.test(p[0])) return;
-    if (!p[0]) return;
-    if (findCustomer(p[0])) return;
-    state.customers.push({ id: uid(), name: p[0], phone: p[1] || '', email: p[2] || '', contact: p[3] || '' }); added++;
-  });
-  persist(); renderSettings(); renderBoard(); toast(t('custImported', { n: added }));
+  let text, encoded = false;
+  try {
+    const buf = await f.arrayBuffer();
+    text = new TextDecoder('utf-8').decode(buf);
+    if (text.includes('\uFFFD')) { text = new TextDecoder('windows-1252').decode(buf); encoded = true; }
+  } catch (err) { toast(t('impBad')); return; }
+  text = text.replace(/^\uFEFF/, '');
+  const isVcf = /\.vcf$/i.test(f.name) || /^\s*BEGIN:VCARD/i.test(text);
+  imp = { file: f.name, kind: isVcf ? 'vcf' : 'csv', encoded, rows: [], header: false, map: [], items: [], skipped: 0, mergedFile: 0, busy: false };
+  if (isVcf) { imp.rows = parseVcf(text); imp.map = ['name', 'contact', 'phone', 'email']; }
+  else {
+    imp.rows = parseCsv(text);
+    const first = imp.rows[0] || [];
+    const hf = first.map(headField);
+    imp.header = hf.filter(Boolean).length > 0 && !first.some(c => /@/.test(c));
+    imp.map = guessMap(imp.header);
+  }
+  $('impTitle').textContent = t('impTitle'); $('impFile').textContent = f.name;
+  if (!$('dlgImport').open) $('dlgImport').showModal();
+  runConvert();
 });
+function guessMap(header) {
+  const cols = Math.max(0, ...imp.rows.map(r => r.length));
+  const map = [];
+  if (header) {
+    const used = new Set();
+    for (let c = 0; c < cols; c++) {
+      let fld = headField(imp.rows[0][c]) || 'ignore';
+      if (fld === 'name' && used.has('name')) fld = used.has('contact') ? 'ignore' : 'contact';
+      if (fld === 'contact' && used.has('contact')) fld = 'ignore';
+      if (fld !== 'ignore' && fld !== 'phone' && fld !== 'email' && fld !== 'name' && fld !== 'contact' && used.has(fld)) fld = 'ignore';
+      used.add(fld); map.push(fld);
+    }
+    return map;
+  }
+  const sample = imp.rows.slice(0, 50);
+  const textCols = [];
+  for (let c = 0; c < cols; c++) {
+    const vals = sample.map(r => normText(r[c])).filter(Boolean);
+    if (!vals.length) { map.push('ignore'); continue; }
+    const share = rx => vals.filter(v => rx.test(v)).length / vals.length;
+    if (share(/@/) > .5) map.push('email');
+    else if (share(/^[+\d\s()\/.\-]{7,}$/) > .5) map.push('phone');
+    else { map.push('?'); textCols.push(c); }
+  }
+  textCols.forEach((c, i) => { map[c] = i === 0 ? 'name' : i === 1 ? 'contact' : 'ignore'; });
+  let ph = false, em = false;
+  return map.map(m => { if (m === 'phone') { if (ph) return 'ignore'; ph = true; } if (m === 'email') { if (em) return 'ignore'; em = true; } return m; });
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function runConvert() {
+  if (!imp) return;
+  const token = imp.token = Math.random();
+  const data = imp.header ? imp.rows.slice(1) : imp.rows;
+  $('impBody').innerHTML = '<div class="imp-sec"><h3>' + esc(t('impConverting')) + '</h3><div class="progress"><div id="impBar"></div></div></div>';
+  $('impGo').disabled = true; $('impGo').textContent = t('impBtn', { n: 0 }); $('impCount').textContent = '';
+  const items = [], byKey = new Map(); let skipped = 0, mergedFile = 0;
+  const hasName = imp.map.includes('name') || imp.map.includes('first') || imp.map.includes('last');
+  const chunk = 40, steps = Math.max(1, Math.ceil(data.length / chunk)), delay = Math.max(12, Math.min(60, 700 / steps));
+  for (let s0 = 0; s0 < data.length || s0 === 0; s0 += chunk) {
+    if (hasName) data.slice(s0, s0 + chunk).forEach(row => {
+      const r = { name: '', contact: '', first: '', last: '', phone: '', email: '' };
+      imp.map.forEach((fld, c) => {
+        if (!fld || fld === 'ignore') return;
+        const v = normText(row[c]); if (!v) return;
+        if (['name', 'contact', 'first', 'last'].includes(fld)) r[fld] = r[fld] ? r[fld] + ' ' + v : v;
+        else if (!r[fld]) r[fld] = v;
+      });
+      const person = [r.first, r.last].filter(Boolean).join(' ');
+      const it = { name: r.name || person, contact: r.contact || (r.name ? person : ''), phone: normPhone(r.phone), email: normEmail(r.email), sel: true, action: 'merge', existingId: null };
+      if (!it.name) { skipped++; return; }
+      const key = nameKey(it.name);
+      const dup = byKey.get(key);
+      if (dup) { ['contact', 'phone', 'email'].forEach(k => { if (!dup[k] && it[k]) dup[k] = it[k]; }); mergedFile++; return; }
+      const ex = state.customers.find(c => nameKey(c.name) === key);
+      if (ex) it.existingId = ex.id;
+      byKey.set(key, it); items.push(it);
+    });
+    if (imp.token !== token) return;
+    $('impBar').style.width = Math.min(100, Math.round((s0 + chunk) / Math.max(1, data.length) * 100)) + '%';
+    await sleep(delay);
+    if (imp.token !== token) return;
+  }
+  imp.items = items; imp.skipped = skipped; imp.mergedFile = mergedFile; imp.hasName = hasName;
+  renderImport();
+}
+function renderImport() {
+  const it = imp.items, neu = it.filter(x => !x.existingId).length;
+  let h = '<div class="imp-sec"><h3>' + icon('check', 15) + ' ' + esc(t('impConverted', { n: (imp.header ? imp.rows.length - 1 : imp.rows.length) })) + '</h3><div class="progress"><div style="width:100%"></div></div>'
+    + '<p class="hint" style="margin:6px 0 0">' + esc(t('impSummary', { n: it.length, neu, ex: it.length - neu }))
+    + (imp.skipped ? ' · ' + esc(t('impSkipped', { n: imp.skipped })) : '') + (imp.mergedFile ? ' · ' + esc(t('impMergedFile', { n: imp.mergedFile })) : '') + '</p>'
+    + (imp.encoded ? '<p class="hint" style="margin:2px 0 0">' + esc(t('impEncoding')) + '</p>' : '') + '</div>';
+  if (imp.kind === 'csv') {
+    const cols = imp.map.length;
+    h += '<div class="imp-sec"><h3>' + esc(t('impMapping')) + '</h3><p class="hint" style="margin:0 0 6px">' + esc(t('impMapHint')) + '</p>'
+      + '<label style="display:flex;gap:8px;align-items:center;color:var(--text);font-size:13px;margin:4px 0 8px"><input type="checkbox" id="impHeader"' + (imp.header ? ' checked' : '') + '>' + esc(t('impHeaderRow')) + '</label>'
+      + '<table class="map-table"><thead><tr><th>' + esc(t('thColumn')) + '</th><th>' + esc(t('thHeading')) + '</th><th>' + esc(t('thExample')) + '</th><th>' + esc(t('thAssign')) + '</th></tr></thead><tbody>';
+    const dataRows = imp.header ? imp.rows.slice(1) : imp.rows;
+    for (let c = 0; c < cols; c++) {
+      const ex = (dataRows.find(r => normText(r[c])) || [])[c] || '';
+      h += '<tr><td>' + (c + 1) + '</td><td>' + (imp.header ? esc(normText(imp.rows[0][c])) : '–') + '</td><td class="ex" title="' + esc(normText(ex)) + '">' + esc(normText(ex)) + '</td><td><select data-map="' + c + '">'
+        + MAP_FIELDS.map(m => '<option value="' + m + '"' + (imp.map[c] === m ? ' selected' : '') + '>' + esc(t('map_' + m)) + '</option>').join('') + '</select></td></tr>';
+    }
+    h += '</tbody></table></div>';
+  } else h += '<p class="hint">' + esc(t('impVcf')) + '</p>';
+  if (!imp.hasName) h += '<p class="err">' + esc(t('impNoName')) + '</p>';
+  else if (!it.length) h += '<p class="empty">' + esc(t('impEmpty')) + '</p>';
+  else {
+    h += '<div class="imp-sec"><h3>' + esc(t('impPreview')) + '</h3><p class="hint" style="margin:0 0 6px">' + esc(t('impPreviewHint')) + '</p><table class="imp-table"><thead><tr><th class="chk"><input type="checkbox" id="impAll" aria-label="' + esc(t('custSelAll')) + '"></th><th>' + esc(t('thName')) + '</th><th>' + esc(t('thContact')) + '</th><th style="width:175px">' + esc(t('thPhone')) + '</th><th>' + esc(t('thEmail')) + '</th><th>' + esc(t('thImpStatus')) + '</th></tr></thead><tbody>'
+      + it.map((x, i) => {
+        const ex = x.existingId ? custById(x.existingId) : null;
+        const status = ex ? '<div class="hint" style="margin:0 0 3px;white-space:nowrap">' + esc(t('impExists', { name: ex.name })) + '</div><select data-act="' + i + '">' + ['merge', 'keep', 'replace'].map(a => '<option value="' + a + '"' + (x.action === a ? ' selected' : '') + '>' + esc(t('act_' + a)) + '</option>').join('') + '</select>'
+          : '<span class="pill new">' + esc(t('impNew')) + '</span>';
+        return '<tr data-i="' + i + '" class="' + (x.sel ? '' : 'off') + '"><td class="chk"><input type="checkbox" data-isel' + (x.sel ? ' checked' : '') + '></td>'
+          + ['name', 'contact', 'phone', 'email'].map(k => '<td' + (k === 'phone' ? ' style="min-width:175px"' : '') + '><input type="text" data-f="' + k + '" value="' + esc(x[k]) + '"></td>').join('') + '<td>' + status + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+  $('impBody').innerHTML = h;
+  updateImpCount();
+}
+function updateImpCount() {
+  const it = imp ? imp.items : [], n = it.filter(x => x.sel).length;
+  $('impCount').textContent = it.length ? t('impSelected', { n, m: it.length }) : '';
+  $('impGo').textContent = t('impBtn', { n }); $('impGo').disabled = !n;
+  const all = $('impAll'); if (all) { all.checked = n === it.length && n > 0; all.indeterminate = n > 0 && n < it.length; }
+}
+$('impBody').addEventListener('change', e => {
+  if (!imp) return;
+  const tg = e.target;
+  if (tg.id === 'impHeader') { imp.header = tg.checked; if (imp.kind === 'csv') imp.map = guessMap(imp.header); runConvert(); return; }
+  if (tg.matches('select[data-map]')) { imp.map[Number(tg.dataset.map)] = tg.value; runConvert(); return; }
+  if (tg.id === 'impAll') { imp.items.forEach(x => { x.sel = tg.checked; }); $('impBody').querySelectorAll('tr[data-i]').forEach(tr => { tr.classList.toggle('off', !tg.checked); tr.querySelector('[data-isel]').checked = tg.checked; }); updateImpCount(); return; }
+  const tr = tg.closest('tr[data-i]'); if (!tr) return;
+  const x = imp.items[Number(tr.dataset.i)];
+  if (tg.matches('[data-isel]')) { x.sel = tg.checked; tr.classList.toggle('off', !x.sel); updateImpCount(); }
+  else if (tg.matches('select[data-act]')) x.action = tg.value;
+});
+$('impBody').addEventListener('input', e => {
+  const tg = e.target; if (!imp || !tg.matches('input[data-f]')) return;
+  const x = imp.items[Number(tg.closest('tr').dataset.i)]; if (x) x[tg.dataset.f] = tg.value;
+});
+$('impGo').onclick = () => {
+  if (!imp) return;
+  const res = { neu: 0, merged: 0, replaced: 0, kept: 0 };
+  imp.items.filter(x => x.sel).forEach(x => {
+    const v = { name: normText(x.name), contact: normText(x.contact), phone: normText(x.phone), email: normEmail(x.email) };
+    if (!v.name) return;
+    const ex = x.existingId ? custById(x.existingId) : null;
+    if (ex) {
+      if (x.action === 'keep') { res.kept++; return; }
+      if (x.action === 'replace') { ['contact', 'phone', 'email'].forEach(k => { if (v[k]) ex[k] = v[k]; }); res.replaced++; return; }
+      ['contact', 'phone', 'email'].forEach(k => { if (!normText(ex[k]) && v[k]) ex[k] = v[k]; }); res.merged++; return;
+    }
+    state.customers.push({ id: uid(), ...v }); res.neu++;
+  });
+  imp = null;
+  $('dlgImport').close();
+  persist(); renderBoard();
+  if ($('dlgSettings').open) renderSettings();
+  if ($('dlgCustomer').open) renderCustomer();
+  toast(t('impResult', res));
+};
+$('dlgImport').addEventListener('close', () => { if (imp) imp.token = null; imp = null; });
+
+/* ---------- Kunden: Doppelte finden ---------- */
+let dupes = [];
+function openDupes() {
+  const m = new Map();
+  state.customers.forEach(c => { const k = nameKey(c.name); if (!k) return; if (!m.has(k)) m.set(k, []); m.get(k).push(c); });
+  const score = c => countTasksWith('customerId', c.id) * 10 + ['contact', 'phone', 'email'].filter(k => normText(c[k])).length;
+  dupes = Array.from(m.values()).filter(g => g.length > 1).map(g => ({ ids: g.map(c => c.id), keep: g.slice().sort((a, b) => score(b) - score(a))[0].id, sel: true }));
+  if (!dupes.length) { toast(t('dupNone')); return; }
+  renderDupes();
+  $('dlgDupes').showModal();
+}
+function renderDupes() {
+  $('dupBody').innerHTML = '<p class="hint" style="margin-top:0">' + esc(t('dupHint')) + '</p>' + dupes.map((g, gi) =>
+    '<div class="dup-group' + (g.sel ? '' : ' off') + '" data-g="' + gi + '"><label class="dup-head"><input type="checkbox" data-gsel' + (g.sel ? ' checked' : '') + '>' + esc(t('dupMergeGroup')) + ': ' + esc(custById(g.ids[0]).name) + ' (' + g.ids.length + ')</label>'
+    + g.ids.map(id => { const c = custById(id); return '<label class="dup-row" style="margin:0;color:var(--text)"><input type="radio" name="dupk' + gi + '" value="' + id + '"' + (g.keep === id ? ' checked' : '') + '><b style="font-weight:600">' + esc(c.name) + '</b>'
+      + '<span class="sub">' + esc([c.contact, c.phone, c.email].filter(Boolean).join(' · ') || '–') + '</span><span class="sub">· ' + esc(t('tasksN', { n: countTasksWith('customerId', id) })) + '</span>' + (g.keep === id ? '<span class="pill new">' + esc(t('dupKeep')) + '</span>' : '') + '</label>'; }).join('')
+    + '</div>').join('');
+  const n = dupes.filter(g => g.sel).length;
+  $('dupGo').textContent = t('dupBtn', { n }); $('dupGo').disabled = !n;
+}
+$('dupBody').addEventListener('change', e => {
+  const gEl = e.target.closest('[data-g]'); if (!gEl) return;
+  const g = dupes[Number(gEl.dataset.g)];
+  if (e.target.matches('[data-gsel]')) g.sel = e.target.checked;
+  else if (e.target.type === 'radio') g.keep = e.target.value;
+  renderDupes();
+});
+$('dupGo').onclick = () => {
+  let n = 0;
+  dupes.filter(g => g.sel).forEach(g => {
+    const keep = custById(g.keep); if (!keep) return;
+    g.ids.filter(id => id !== g.keep).forEach(id => {
+      const o = custById(id); if (!o) return;
+      ['contact', 'phone', 'email'].forEach(k => { if (!normText(keep[k]) && normText(o[k])) keep[k] = o[k]; });
+      state.tasks.forEach(tk => { if (tk.customerId === id) tk.customerId = keep.id; });
+      state.customers = state.customers.filter(c => c.id !== id); custSel.delete(id);
+    });
+    n++;
+  });
+  $('dlgDupes').close();
+  persist(); renderBoard();
+  if ($('dlgSettings').open) renderSettings();
+  if ($('dlgCustomer').open) renderCustomer();
+  toast(t('dupDone', { n }));
+};
 function shortcutsHtml() {
   const list = [['Alt+N', 'scNew'], ['Ctrl+Enter', 'scSave'], ['Alt+1 / 2 / 3', 'scPrio'], ['Alt+B', 'scArea'], ['Ctrl+F', 'scSearch'], ['Esc', 'scClose']];
   return '<div class="sc-list">' + list.map(x => '<div><span>' + esc(t(x[1])) + '</span><span class="kbd">' + x[0] + '</span></div>').join('') + '</div><p class="hint">' + esc(t('scMacHint')) + '</p>';
@@ -1771,6 +2140,8 @@ $('btnLang').onclick = () => {
   if ($('dlgSettings').open) renderSettings();
   if ($('dlgArchive').open) renderArchive();
   if ($('dlgCustomer').open) renderCustomer();
+  if ($('dlgImport').open && imp && imp.items) { $('impTitle').textContent = t('impTitle'); renderImport(); }
+  if ($('dlgDupes').open) renderDupes();
 };
 document.querySelectorAll('dialog [data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
 
