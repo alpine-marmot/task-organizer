@@ -4,6 +4,16 @@ Deutsch · [English](CHANGELOG.md)
 
 Alle wichtigen Änderungen am Task Organizer. Die Versionen folgen [Semantic Versioning](https://semver.org/lang/de/); 0.x-Versionen sind Beta.
 
+## 0.4.0 – 24.11.2026
+
+### Neu
+- Mehrere Boards: neben Privat und Geschäftlich eigene Boards über das **+** in der Kopfzeile anlegen – mit Name, Symbol und Kundenfeld
+- Einstellungen › Boards: Boards ein-/ausschalten (Aufgaben bleiben erhalten), umbenennen, Symbol und Kundenfeld ändern, sortieren, löschen (mit Rückfrage)
+
+### Geändert
+- Kategorien, Archiv und `Alt+B` berücksichtigen alle Boards; Kundenfeld, Kundenfilter und Knopf «Kunden» erscheinen nur in Boards mit Kundenfeld
+- Bestehende Daten werden automatisch übernommen (Privat ohne, Geschäftlich mit Kundenfeld)
+
 ## 0.3.1 – 24.11.2026
 
 ### Neu

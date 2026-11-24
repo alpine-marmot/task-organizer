@@ -14,17 +14,17 @@ Ein Kanban-Board für Arbeiten, Aufgaben und To-dos – getrennt in <b>Privat</b
 Ohne Server, ohne Konto, ohne Internetverbindung.
 </p>
 
-<p align="center"><b>Version 0.3.1 (Beta)</b> · <a href="CHANGELOG.de.md">Änderungen</a> · <a href="https://alpine-marmot.github.io/task-organizer/">App öffnen</a></p>
+<p align="center"><b>Version 0.4.0 (Beta)</b> · <a href="CHANGELOG.de.md">Änderungen</a> · <a href="https://alpine-marmot.github.io/task-organizer/">App öffnen</a></p>
 
 ![Task Organizer im hellen Design, Bereich Geschäftlich](screenshots/light.png)
 
 ## Funktionen
 
-- **Zwei Bereiche:** Privat und Geschäftlich, je mit eigenen Aufgaben und Kategorien
+- **Boards:** standardmässig Privat und Geschäftlich, dazu eigene Boards (z. B. für einen Verein) über das **+** in der Kopfzeile – je mit eigenen Aufgaben und Kategorien; Boards ein- und ausschalten, umbenennen, sortieren oder löschen
 - **Vier Spalten:** Offen → Geplant → Warten → Erledigt
 - **Aufgaben** mit Priorität 1–3, Kategorie, Fälligkeitsdatum und Notiz
 - **Kategorien mit Farben:** entstehen beim ersten Eintippen und werden danach vorgeschlagen; die Farbe erscheint als Rand der Karte
-- **Kunden** (Bereich Geschäftlich): entstehen automatisch, werden beim Tippen vorgeschlagen, mit Ansprechperson, Telefon und E-Mail
+- **Kunden** (Boards mit eingeschaltetem Kundenfeld): entstehen automatisch, werden beim Tippen vorgeschlagen, mit Ansprechperson, Telefon und E-Mail
 - **Kundenkarte:** Telefon und E-Mail zum Anklicken, alle offenen Aufgaben nach Spalte, erledigte und archivierte Aufgaben, «Neue Aufgabe für …»
 - **Kunden-Import** aus CSV (Excel, Outlook …) oder vCard (.vcf, Apple Kontakte): Spalten werden automatisch erkannt und lassen sich neu zuordnen, Daten werden bereinigt (Telefon im Schweizer Format, E-Mail, Zeichensatz), Vorschau mit An-/Abwählen und Umgang mit Doppelten (zusammenführen, behalten, ersetzen)
 - **Kunden verwalten:** mehrere per Kästchen auswählen und gemeinsam löschen, Doppelte finden und zusammenführen
@@ -58,10 +58,27 @@ Ohne Server, ohne Konto, ohne Internetverbindung.
 | Neue Aufgabe | Knopf «Neue Aufgabe», `Alt+N`, Kachel «+ Aufgabe hinzufügen» in einer Spalte oder Doppelklick auf eine leere Stelle |
 | Aufgabe bearbeiten | Karte anklicken |
 | Aufgabe verschieben | Karte ziehen oder Pfeil-Symbol («Verschieben nach …») |
-| Bereich wechseln | Reiter oben oder `Alt+B` |
+| Board wechseln | Reiter oben oder `Alt+B` |
+| Neues Board | **+** neben den Boards oder Einstellungen › Boards |
 | Kundenkarte | blauen Kunden-Chip auf einer Karte oder Knopf «Kunden» anklicken |
 | Archivieren | «Archivieren» auf einer erledigten Karte, «Alle archivieren» oder automatisch |
 | Kunden importieren | «Importieren» im Kunden-Fenster oder unter Einstellungen › Kunden |
+
+### Boards
+
+Neben *Privat* und *Geschäftlich* legst du beliebig viele Boards an: Klicke auf das **+** neben den Boards, gib einen Namen ein, wähle ein Symbol und entscheide, ob die Aufgaben ein Feld *Kunde* haben. Die Kundenliste ist für alle Boards mit Kundenfeld gemeinsam.
+
+Unter **Einstellungen › Boards** kannst du:
+- **Boards ein- und ausschalten** – ein ausgeschaltetes Board verschwindet aus der Kopfzeile, seine Aufgaben bleiben erhalten (praktisch, wenn du nur *Privat* brauchst)
+- Boards umbenennen, Symbol und Kundenfeld ändern
+- die Reihenfolge mit den Pfeilen ändern
+- Boards löschen – nach einer Rückfrage, inklusive Aufgaben und Kategorien
+
+Mindestens ein Board bleibt immer eingeschaltet. `Alt+B` wechselt der Reihe nach durch die eingeschalteten Boards.
+
+![Einstellungen › Boards](screenshots/boards-de.png)
+
+![Neues Board](screenshots/new-board-de.png)
 
 ### Wiederkehrende Aufgaben
 
@@ -96,7 +113,7 @@ Unter *Einstellungen › Kunden* wählst du mit den Kästchen mehrere Kunden aus
 | `Alt+N` | Neue Aufgabe |
 | `Ctrl+Enter` | Speichern (im Formular) |
 | `Alt+1` / `2` / `3` | Priorität (im Formular) |
-| `Alt+B` | Bereich wechseln |
+| `Alt+B` | Board wechseln |
 | `Ctrl+F` | Suche |
 | `Esc` | Fenster oder Menü schliessen |
 

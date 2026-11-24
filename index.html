@@ -6,10 +6,15 @@
 <title>Task Organizer</title>
 <!--
   Task Organizer
-  Version 0.3.1 (Beta) · by alpine-marmot · 2026
+  Version 0.4.0 (Beta) · by alpine-marmot · 2026
   https://github.com/alpine-marmot/task-organizer · MIT-Lizenz
 
   CHANGELOG
+  0.4.0 – 24.11.2026
+    - Mehrere Boards: neben Privat und Geschäftlich eigene Boards anlegen (+ in der Kopfzeile), mit Name, Symbol und Kundenfeld
+    - Einstellungen › Boards: ein-/ausschalten, umbenennen, Symbol ändern, Kundenfeld ein/aus, Reihenfolge, löschen (mit Rückfrage)
+    - Kategorien, Archiv und Alt+B berücksichtigen alle Boards; Kundenfeld, Kundenfilter und «Kunden» nur in Boards mit Kundenfeld
+    - Bestehende Daten werden übernommen (Privat ohne, Geschäftlich mit Kundenfeld)
   0.3.1 – 24.11.2026
     - Kachel «+ Aufgabe hinzufügen» unter der letzten Karte in Offen, Geplant und Warten (auch in leeren Spalten); ein Klick öffnet «Neue Aufgabe» mit dieser Spalte vorausgewählt
   0.3.0 – 19.11.2026
@@ -95,8 +100,20 @@ header h1{font-size:18px;font-weight:600;margin:0 8px 0 0;display:flex;align-ite
 .status.warn{background:var(--warn-bg);color:var(--warn-text);border-color:transparent}
 .status.err{background:var(--red-bg);color:var(--red-text);border-color:transparent}
 
-.areabar{display:flex;gap:4px;padding:0 18px;background:var(--surface);border-bottom:1px solid var(--border);align-items:flex-end}
-.areabar button{border:none;border-bottom:3px solid transparent;border-radius:0;background:transparent;padding:10px 16px 8px;color:var(--muted);font-weight:500}
+.areabar{display:flex;gap:4px;padding:0 18px;background:var(--surface);border-bottom:1px solid var(--border);align-items:flex-end;overflow-x:auto;scrollbar-width:thin}
+.areabar button{border:none;border-bottom:3px solid transparent;border-radius:0;background:transparent;padding:10px 16px 8px;color:var(--muted);font-weight:500;white-space:nowrap;flex:none}
+.areabar button.add-board{border:1.5px dashed var(--border-strong);border-radius:8px;padding:5px 8px;margin:0 0 6px 6px;color:var(--muted)}
+.areabar button.add-board:hover{border-color:var(--accent);color:var(--accent-text);background:var(--accent-bg)}
+.switch{appearance:none;-webkit-appearance:none;width:34px!important;height:20px!important;border-radius:999px;background:var(--border-strong);position:relative;cursor:pointer;border:none;padding:0!important;flex:none;transition:background .15s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .15s}
+.switch:checked{background:var(--accent)}.switch:checked::after{left:17px}
+.board-row td{vertical-align:middle}
+.board-row.off td{opacity:.55}
+.board-row.off td:first-child{opacity:1}
+.icon-pick{display:flex;gap:6px;flex-wrap:wrap}
+.icon-pick button{width:36px;height:36px;padding:0;justify-content:center}
+.icon-pick button.on{border:2px solid var(--accent);color:var(--accent-text);background:var(--accent-bg)}
+.sw-label{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--text);margin:6px 0 0;cursor:pointer}
 .areabar button:hover{background:var(--surface2)}
 .areabar button.on{border-bottom-color:var(--accent);color:var(--text);font-weight:600}
 .areabar .count{margin-left:2px}
@@ -279,10 +296,7 @@ td .sub{font-size:12px;color:var(--muted);white-space:pre-wrap}
   <button id="btnSettings" class="icon"></button>
 </header>
 
-<nav class="areabar" id="areabar">
-  <button type="button" data-area="private"></button>
-  <button type="button" data-area="business"></button>
-</nav>
+<nav class="areabar" id="areabar"></nav>
 
 <div id="banner" class="banner hidden"></div>
 
@@ -391,11 +405,27 @@ td .sub{font-size:12px;color:var(--muted);white-space:pre-wrap}
   <div class="dlg-foot"><div class="spacer"></div><button data-close data-i18n="btnCancel">Abbrechen</button><button id="dupGo" class="primary"></button></div>
 </dialog>
 
+<!-- Board anlegen / bearbeiten -->
+<dialog id="dlgBoard">
+  <div class="dlg-head"><h2 id="bdTitle"></h2><button class="ghost icon" data-close data-i18n-title="btnClose"></button></div>
+  <div class="dlg-body">
+    <label for="bdName" data-i18n="bdName">Name</label>
+    <input id="bdName" autocomplete="off">
+    <label data-i18n="bdIcon">Symbol</label>
+    <div class="icon-pick" id="bdIcons"></div>
+    <label data-i18n="bdCustomers">Kundenfeld</label>
+    <label class="sw-label"><input type="checkbox" class="switch" id="bdCust"><span data-i18n="bdCustHint">Aufgaben haben ein Feld «Kunde»</span></label>
+    <div class="err hidden" id="bdErr"></div>
+  </div>
+  <div class="dlg-foot"><div class="spacer"></div><button data-close data-i18n="btnCancel">Abbrechen</button><button id="bdSave" class="primary"></button></div>
+</dialog>
+
 <!-- Einstellungen -->
 <dialog id="dlgSettings" class="wide">
   <div class="dlg-head"><h2 data-i18n="settings">Einstellungen</h2><button class="ghost icon" data-close data-i18n-title="btnClose"></button></div>
   <div class="tabs" id="setTabs">
     <button type="button" data-tab="general" data-i18n="tabGeneral">Allgemein</button>
+    <button type="button" data-tab="boards" data-i18n="tabBoards">Boards</button>
     <button type="button" data-tab="categories" data-i18n="tabCategories">Kategorien</button>
     <button type="button" data-tab="customers" data-i18n="tabCustomers">Kunden</button>
   </div>
@@ -417,7 +447,7 @@ td .sub{font-size:12px;color:var(--muted);white-space:pre-wrap}
 <script>
 'use strict';
 const APP_NAME = 'Task Organizer';
-const APP_VERSION = '0.3.1';
+const APP_VERSION = '0.4.0';
 const APP_AUTHOR = 'alpine-marmot';
 const REPO_URL = 'https://github.com/alpine-marmot/task-organizer';
 const PROFILE_URL = 'https://github.com/alpine-marmot';
@@ -426,6 +456,7 @@ const LOGO_DARK = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC4AAAAwCAYAAAB
 const RELEASE_YEAR = '2026';
 const LS_KEY = 'to_state_v1';
 const CHANGELOG = [
+  { v: '0.4.0', d: '24.11.2026', de: 'Mehrere Boards: eigene Boards mit Name, Symbol und Kundenfeld anlegen (+ in der Kopfzeile); in den Einstellungen ein-/ausschalten, umbenennen, sortieren und löschen. Kategorien, Archiv und Alt+B berücksichtigen alle Boards.', en: 'Multiple boards: add your own boards with name, icon and customer field (+ in the header); switch them on/off, rename, reorder and delete them in settings. Categories, archive and Alt+B cover all boards.' },
   { v: '0.3.1', d: '24.11.2026', de: 'Kachel «+ Aufgabe hinzufügen» unter der letzten Karte in Offen, Geplant und Warten; ein Klick öffnet «Neue Aufgabe» mit dieser Spalte vorausgewählt.', en: '“+ Add task” tile below the last card in Open, Planned and Waiting; one click opens “New task” with that column preselected.' },
   { v: '0.3.0', d: '19.11.2026', de: 'Kunden-Import mit Vorschau (an-/abwählen, Felder korrigieren), automatische Spaltenerkennung mit Zuordnung und Ladebalken, Bereinigung (Telefon im Schweizer Format, E-Mail, Zeichensatz), Umgang mit Doppelten (zusammenführen, behalten, ersetzen), vCard-Import, Mehrfachauswahl zum Löschen, «Doppelte finden», Import-Knopf im Kunden-Fenster, Telefonnummern vollständig sichtbar, Kurzmeldungen vor geöffneten Fenstern.', en: 'Customer import with preview (select/deselect, fix fields), automatic column detection with mapping and progress bar, clean-up (Swiss phone format, email, character set), duplicate handling (merge, keep, replace), vCard import, multi-select delete, “Find duplicates”, import button in the customer window, phone numbers shown in full, short messages shown above open windows.' },
   { v: '0.2.2', d: '19.11.2026', de: 'Veröffentlichung auf GitHub: Autor «alpine-marmot», Fusszeile mit Logo und Links zu Repository und Profil.', en: 'Published on GitHub: author “alpine-marmot”, footer with logo and links to the repository and profile.' },
@@ -434,7 +465,12 @@ const CHANGELOG = [
   { v: '0.1.0', d: '14.11.2026', de: 'Erste Beta-Version: Bereiche Privat und Geschäftlich, vier Spalten (Offen, Geplant, Warten, Erledigt), Priorität 1–3, Kategorien mit Farben, Fälligkeitsdatum, Notiz, Kunden mit Telefon und E-Mail, Sortierung pro Spalte, Drag & Drop und Menü «Verschieben nach …», Archiv (per Knopf oder automatisch), Speichern in Datei, Einstellungen, Hilfe, Hell/Dunkel, DE/EN, Tastenkürzel.', en: 'First beta: Private and Business areas, four columns (Open, Planned, Waiting, Done), priority 1–3, coloured categories, due date, note, customers with phone and email, per-column sorting, drag & drop and “Move to …” menu, archive (manual or automatic), saving to a file, settings, help, light/dark, DE/EN, keyboard shortcuts.' }
 ];
 const COLS = ['open', 'planned', 'waiting', 'done'];
-const AREAS = ['private', 'business'];
+const BOARD_ICONS = ['home', 'briefcase', 'users', 'building', 'camera', 'bike', 'car', 'plane', 'heart', 'star', 'book', 'music', 'tool', 'paw', 'leaf', 'school', 'checklist'];
+const SORT_DEFAULT = { open: 'prio', planned: 'due', waiting: 'created', done: 'manual' };
+const defaultBoards = () => [
+  { id: 'private', name: '', icon: 'home', customers: false, active: true },
+  { id: 'business', name: '', icon: 'briefcase', customers: true, active: true }
+];
 const SORTS = ['prio', 'created', 'due', 'color', 'manual'];
 const PALETTE = ['#378ADD', '#639922', '#E24B4A', '#BA7517', '#7F77DD', '#D4537E', '#1D9E75', '#D85A30', '#888780'];
 const COL_COLORS = { open: 'var(--faint)', planned: 'var(--accent)', waiting: 'var(--yellow)', done: 'var(--green)' };
@@ -492,7 +528,7 @@ const I18N = {
     hWhatT: 'Was die App macht', hWhat: 'Der Task Organizer sammelt Arbeiten, Aufgaben und To-dos – getrennt in einen privaten und einen geschäftlichen Bereich. Jede Aufgabe ist eine Karte und wandert durch vier Spalten, bis sie erledigt ist. Danach kommt sie ins Archiv.',
     hFlowT: 'Ablauf einer Aufgabe', hFlow: 'Karten lassen sich frei zwischen allen Spalten verschieben. Erledigte Karten archivieren Sie per Knopf, oder sie werden nach einer einstellbaren Anzahl Tage automatisch archiviert. Aus dem Archiv lassen sie sich wiederherstellen.',
     hColsT: 'Die vier Spalten', hColOpen: 'neu erfasst, noch nicht eingeplant.', hColPlanned: 'Sie wissen, wann Sie es erledigen.', hColWaiting: 'angefangen, wartet aber auf etwas – eine Rückmeldung, eine Lieferung, einen Termin.', hColDone: 'fertig. Wird nach der eingestellten Frist automatisch archiviert.',
-    hAreasT: 'Privat und Geschäftlich', hAreas: 'Oben wechseln Sie zwischen den Bereichen (Alt+B). Jeder Bereich hat eigene Aufgaben und Kategorien. Kunden gibt es nur im geschäftlichen Bereich.',
+    hAreasT: 'Boards', hAreas: 'Oben wechseln Sie zwischen den Boards (Alt+B). Standardmässig gibt es «Privat» und «Geschäftlich»; mit dem + daneben legen Sie weitere an, z. B. für einen Verein. Jedes Board hat eigene Aufgaben und Kategorien. Ein Feld «Kunde» gibt es nur in Boards mit eingeschaltetem Kundenfeld – die Kundenliste ist für alle diese Boards gemeinsam. Unter Einstellungen › Boards schalten Sie Boards ein und aus (die Aufgaben bleiben erhalten), benennen sie um, ändern Symbol und Reihenfolge oder löschen sie.',
     hCatT: 'Kategorien und Farben', hCat: 'Tippen Sie eine Kategorie ein. Ist sie neu, wird sie beim Speichern angelegt und bekommt die nächste freie Farbe. Danach wird sie vorgeschlagen. Die Farbe wählen Sie direkt beim Erfassen oder in den Einstellungen unter «Kategorien». Sie gilt für alle Aufgaben dieser Kategorie und erscheint als farbiger Rand der Karte.',
     hCustT: 'Kunden', hCust: 'Im geschäftlichen Bereich hat jede Aufgabe ein Feld «Kunde». Neue Kunden werden beim Speichern angelegt, bekannte vorgeschlagen. Ansprechperson, Telefon und E-Mail gehören zum Kunden: Ändern Sie sie in einer Aufgabe, gilt das für alle Aufgaben dieses Kunden. Ein Klick auf den blauen Kunden-Chip einer Karte oder der Knopf «Kunden» öffnet die Kundenkarte: Kontaktdaten zum Anklicken, alle offenen Aufgaben nach Spalte, erledigte und archivierte Aufgaben sowie «Neue Aufgabe für …». Die Kundenliste zum Bearbeiten finden Sie in den Einstellungen. Dort wählen Sie mit den Kästchen mehrere Kunden aus und löschen sie gemeinsam, finden doppelte Kunden und führen sie zusammen. Über «Importieren» holen Sie Kontakte aus einer CSV-Datei (z. B. Excel oder Outlook) oder einer vCard (.vcf, z. B. Apple Kontakte): Die Spalten werden automatisch erkannt und lassen sich neu zuordnen, Telefonnummern kommen ins Schweizer Format, und in der Vorschau wählen Sie, welche Kontakte übernommen werden und was mit bereits vorhandenen geschieht.',
     hPrioT: 'Priorität und Fälligkeit', hPrio: 'Priorität 1 ist am wichtigsten, 3 am wenigsten wichtig. Priorität 1 ist auf der Karte rot markiert. Überfällige Aufgaben sind rot, heute fällige gelb.',
@@ -507,7 +543,7 @@ const I18N = {
     pDriveT: 'Achtung Cloud-Ordner', pDrive: 'Liegt die Datei in einem Ordner, der mit einer Cloud synchronisiert wird (z. B. iCloud Drive, OneDrive, Google Drive, Dropbox), werden alle Daten dorthin kopiert. Dann gelten die Regeln dieses Speichers.',
     pPathT: 'Speicherort prüfen', pPath: 'Der Browser zeigt nur den Dateinamen, nicht den Ordner. Die App kann darum nicht erkennen, ob die Datei in einem Cloud-Ordner liegt – das bitte selbst prüfen.',
     hScT: 'Tastenkürzel', hVerT: 'Versionen',
-    scNew: 'Neue Aufgabe', scSave: 'Speichern (im Formular)', scPrio: 'Priorität 1 / 2 / 3 (im Formular)', scArea: 'Bereich wechseln', scSearch: 'Suche', scClose: 'Fenster oder Menü schliessen',
+    scNew: 'Neue Aufgabe', scSave: 'Speichern (im Formular)', scPrio: 'Priorität 1 / 2 / 3 (im Formular)', scArea: 'Board wechseln', scSearch: 'Suche', scClose: 'Fenster oder Menü schliessen',
     scMacHint: 'Auf dem Mac: Alt = Wahltaste (⌥), Ctrl kann auch Cmd (⌘) sein.',
     dgTitle: 'Jede Aufgabe wandert nach rechts und landet im Archiv', dgFree: 'Karten frei zwischen allen Spalten verschieben',
     dgOpenSub: 'neu erfasst', dgPlannedSub: 'eingeplant', dgWaitingSub: 'wartet auf etwas', dgDoneSub: 'fertig',
@@ -524,6 +560,13 @@ const I18N = {
     impNew: 'Neu', act_merge: 'Zusammenführen', act_keep: 'Bestehenden behalten', act_replace: 'Durch Import ersetzen', impExists: 'Vorhanden: {name}',
     impSelected: '{n} von {m} ausgewählt', impBtn: 'Importieren ({n})', impResult: 'Import: {neu} neu, {merged} zusammengeführt, {replaced} ersetzt, {kept} behalten', impBad: 'Die Datei konnte nicht gelesen werden.',
     dupTitle: 'Doppelte Kunden', dupHint: 'Gleiche Namen werden erkannt, auch wenn sich Gross-/Kleinschreibung, Akzente, Leer- oder Satzzeichen unterscheiden. Wähle pro Gruppe den Eintrag, der bleibt: Leere Felder werden aus den anderen ergänzt, deren Aufgaben übernommen, danach werden sie gelöscht.',
+    tabBoards: 'Boards', boardNew: 'Neues Board', boardEdit: 'Board bearbeiten', boardAdd: 'Board hinzufügen', bdName: 'Name', bdIcon: 'Symbol', bdCustomers: 'Kundenfeld',
+    bdCustHint: 'Aufgaben haben ein Feld «Kunde»', bdCreate: 'Board anlegen', bdErrName: 'Bitte einen Namen eingeben.', boardNamePh: 'z. B. Verein',
+    thActive: 'Aktiv', thBoard: 'Board', thCustomersShort: 'Kunden', thOrder: 'Reihenfolge', moveUp: 'Nach oben', moveDown: 'Nach unten',
+    boardsHint: 'Ausgeschaltete Boards verschwinden aus der Kopfzeile, ihre Aufgaben bleiben erhalten. Mindestens ein Board bleibt eingeschaltet.',
+    boardLastActive: 'Mindestens ein Board muss eingeschaltet bleiben.', boardLastOne: 'Das letzte Board kann nicht gelöscht werden.',
+    boardDelTitle: 'Board «{name}» löschen?', boardDelText: 'Gelöscht werden {n} Aufgabe(n) inklusive Archiv und {c} Kategorie(n). Das kann nicht rückgängig gemacht werden – vorher eventuell eine Sicherung exportieren.',
+    boardCreated: 'Board «{name}» angelegt', boardDeleted: 'Board gelöscht', boardHiddenTag: 'ausgeblendet',
     dupNone: 'Keine doppelten Kunden gefunden.', dupKeep: 'bleibt', dupMergeGroup: 'Zusammenführen', dupBtn: 'Zusammenführen ({n})', dupDone: '{n} Gruppe(n) zusammengeführt',
     fRepeat: 'Wiederholen', rep_none: 'Nie', rep_d1: 'Täglich', rep_w1: 'Wöchentlich', rep_w2: 'Alle 2 Wochen', rep_m1: 'Monatlich', rep_y1: 'Jährlich', rep_custom: 'Eigene …',
     rl_d1: 'täglich', rl_w1: 'wöchentlich', rl_w2: 'alle 2 Wochen', rl_m1: 'monatlich', rl_y1: 'jährlich', rlCustom: 'alle {n} {unit}',
@@ -589,7 +632,7 @@ const I18N = {
     hWhatT: 'What the app does', hWhat: 'Task Organizer collects chores, tasks and to-dos – split into a private and a business area. Each task is a card that moves through four columns until it’s done. Then it goes to the archive.',
     hFlowT: 'How a task flows', hFlow: 'Cards can move freely between all columns. Archive finished cards with the button, or they’re archived automatically after a number of days you set. You can restore them from the archive.',
     hColsT: 'The four columns', hColOpen: 'just added, not scheduled yet.', hColPlanned: 'you know when you’ll do it.', hColWaiting: 'started, but waiting on something – a reply, a delivery, an appointment.', hColDone: 'finished. Archived automatically after the set period.',
-    hAreasT: 'Private and Business', hAreas: 'Switch areas at the top (Alt+B). Each area has its own tasks and categories. Customers exist only in the business area.',
+    hAreasT: 'Boards', hAreas: 'Switch boards at the top (Alt+B). By default there are “Private” and “Business”; use the + next to them to add more, e.g. for a club. Each board has its own tasks and categories. A “Customer” field exists only in boards with the customer field switched on – the customer list is shared by all of them. Under Settings › Boards you switch boards on and off (tasks are kept), rename them, change icon and order, or delete them.',
     hCatT: 'Categories and colours', hCat: 'Type a category. If it’s new, it’s created when you save and gets the next free colour. After that it’s suggested. Pick the colour while adding a task or in Settings under “Categories”. It applies to every task in that category and shows as the card’s coloured edge.',
     hCustT: 'Customers', hCust: 'In the business area every task has a “Customer” field. New customers are created when you save, known ones are suggested. Contact person, phone and email belong to the customer: change them in one task and it applies to all of that customer’s tasks. Click the blue customer chip on a card or the “Customers” button to open the customer card: clickable contact details, all open tasks by column, done and archived tasks, and “New task for …”. The editable customer list is in Settings. There you can tick several customers and delete them together, and find and merge duplicates. “Import” brings in contacts from a CSV file (e.g. Excel or Outlook) or a vCard (.vcf, e.g. Apple Contacts): columns are detected automatically and can be remapped, Swiss phone numbers are formatted, and in the preview you choose which contacts to take over and what happens to existing ones.',
     hPrioT: 'Priority and due date', hPrio: 'Priority 1 is the most important, 3 the least. Priority 1 is marked red on the card. Overdue tasks are red, tasks due today yellow.',
@@ -604,7 +647,7 @@ const I18N = {
     pDriveT: 'Watch out for cloud folders', pDrive: 'If the file is in a folder synced to a cloud (e.g. iCloud Drive, OneDrive, Google Drive, Dropbox), all data is copied there and that storage’s rules apply.',
     pPathT: 'Check the location', pPath: 'The browser shows only the file name, not the folder, so the app can’t tell whether the file is in a cloud folder – check this yourself.',
     hScT: 'Keyboard shortcuts', hVerT: 'Versions',
-    scNew: 'New task', scSave: 'Save (in form)', scPrio: 'Priority 1 / 2 / 3 (in form)', scArea: 'Switch area', scSearch: 'Search', scClose: 'Close window or menu',
+    scNew: 'New task', scSave: 'Save (in form)', scPrio: 'Priority 1 / 2 / 3 (in form)', scArea: 'Switch board', scSearch: 'Search', scClose: 'Close window or menu',
     scMacHint: 'On a Mac: Alt = Option (⌥), Ctrl can also be Cmd (⌘).',
     dgTitle: 'Every task moves right and ends up in the archive', dgFree: 'Move cards freely between all columns',
     dgOpenSub: 'just added', dgPlannedSub: 'scheduled', dgWaitingSub: 'waiting on something', dgDoneSub: 'finished',
@@ -621,6 +664,13 @@ const I18N = {
     impNew: 'New', act_merge: 'Merge', act_keep: 'Keep existing', act_replace: 'Replace with import', impExists: 'Exists: {name}',
     impSelected: '{n} of {m} selected', impBtn: 'Import ({n})', impResult: 'Import: {neu} new, {merged} merged, {replaced} replaced, {kept} kept', impBad: 'The file couldn’t be read.',
     dupTitle: 'Duplicate customers', dupHint: 'Matching names are found even if case, accents, spaces or punctuation differ. Pick the entry to keep in each group: empty fields are filled from the others, their tasks are moved over, then they’re deleted.',
+    tabBoards: 'Boards', boardNew: 'New board', boardEdit: 'Edit board', boardAdd: 'Add board', bdName: 'Name', bdIcon: 'Icon', bdCustomers: 'Customer field',
+    bdCustHint: 'Tasks have a “Customer” field', bdCreate: 'Create board', bdErrName: 'Enter a name.', boardNamePh: 'e.g. Club',
+    thActive: 'Active', thBoard: 'Board', thCustomersShort: 'Customers', thOrder: 'Order', moveUp: 'Move up', moveDown: 'Move down',
+    boardsHint: 'Switched-off boards disappear from the header; their tasks are kept. At least one board stays on.',
+    boardLastActive: 'At least one board must stay on.', boardLastOne: 'The last board can’t be deleted.',
+    boardDelTitle: 'Delete board “{name}”?', boardDelText: '{n} task(s) including the archive and {c} categor(y/ies) will be deleted. This can’t be undone – consider exporting a backup first.',
+    boardCreated: 'Board “{name}” created', boardDeleted: 'Board deleted', boardHiddenTag: 'hidden',
     dupNone: 'No duplicate customers found.', dupKeep: 'keep', dupMergeGroup: 'Merge', dupBtn: 'Merge ({n})', dupDone: '{n} group(s) merged',
     fRepeat: 'Repeat', rep_none: 'Never', rep_d1: 'Daily', rep_w1: 'Weekly', rep_w2: 'Every 2 weeks', rep_m1: 'Monthly', rep_y1: 'Yearly', rep_custom: 'Custom …',
     rl_d1: 'daily', rl_w1: 'weekly', rl_w2: 'every 2 weeks', rl_m1: 'monthly', rl_y1: 'yearly', rlCustom: 'every {n} {unit}',
@@ -668,6 +718,23 @@ const ICONS = {
   phone: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>',
   mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
   back: '<path d="M15 18l-6-6 6-6"/>',
+  home: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+  briefcase: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/>',
+  building: '<path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h3a1 1 0 0 1 1 1v11M3 21h18M8 7h4M8 11h4M8 15h4"/>',
+  camera: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/>',
+  bike: '<circle cx="6" cy="16" r="3.5"/><circle cx="18" cy="16" r="3.5"/><path d="M6 16l4-8h5l3 8M10 8l2 8M14 5h2"/>',
+  heart: '<path d="M12 20s-7-4.4-9-9a4.8 4.8 0 0 1 9-3 4.8 4.8 0 0 1 9 3c-2 4.6-9 9-9 9z"/>',
+  star: '<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/>',
+  book: '<path d="M4 4h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4zM20 4h-6a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/>',
+  car: '<path d="M5 16v-5l2-5h10l2 5v5M3 16h18v3H3zM5 11h14"/>',
+  plane: '<path d="M10.5 3.5a1.5 1.5 0 0 1 3 0V9l7 4v2l-7-2v4l2 1.5V20l-3.5-1-3.5 1v-1.5l2-1.5v-4l-7 2v-2l7-4z"/>',
+  music: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+  tool: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3 17.8V21h3.2l6.3-6.3a4 4 0 0 0 5.2-5.4l-2.5 2.5-2.5-.5-.5-2.5z"/>',
+  paw: '<circle cx="7" cy="9" r="1.8"/><circle cx="11" cy="6" r="1.8"/><circle cx="15" cy="6.5" r="1.8"/><circle cx="18" cy="10" r="1.8"/><path d="M12 11c-3 0-6 4.5-6 7a2.5 2.5 0 0 0 3 2.3c1-.3 2-.6 3-.6s2 .3 3 .6a2.5 2.5 0 0 0 3-2.3c0-2.5-3-7-6-7z"/>',
+  leaf: '<path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15"/><path d="M5 19l8-8"/>',
+  school: '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2 9 2 12 0v-5"/>',
+  up: '<path d="M6 15l6-6 6 6"/>',
+  down: '<path d="M6 9l6 6 6-6"/>',
   edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>'
 };
 function icon(name, size) {
@@ -676,16 +743,11 @@ function icon(name, size) {
 }
 
 /* ---------- Zustand ---------- */
-function defaultSort() {
-  const o = {};
-  AREAS.forEach(a => { o[a] = { open: 'prio', planned: 'due', waiting: 'created', done: 'manual' }; });
-  return o;
-}
 function defaultState() {
   return {
     app: 'task-organizer', schema: 1, savedAt: 0,
-    settings: { lang: 'de', theme: 'system', archiveDays: 14, area: 'private', sort: defaultSort() },
-    categories: [], customers: [], tasks: []
+    settings: { lang: 'de', theme: 'system', archiveDays: 14, area: 'private', sort: {} },
+    boards: defaultBoards(), categories: [], customers: [], tasks: []
   };
 }
 const arr = v => Array.isArray(v) ? v : [];
@@ -700,18 +762,23 @@ function normalizeState(data) {
   const d = defaultState();
   if (!data || typeof data !== 'object') return d;
   const out = { ...d, ...data, settings: { ...d.settings, ...(data.settings || {}) }, categories: arr(data.categories), customers: arr(data.customers), tasks: arr(data.tasks) };
-  const s = defaultSort(), given = out.settings.sort || {};
-  AREAS.forEach(a => { s[a] = { ...s[a], ...(given[a] || {}) }; COLS.forEach(c => { if (!SORTS.includes(s[a][c])) s[a][c] = 'prio'; }); });
+  out.boards = arr(data.boards).filter(b => b && b.id).map(b => ({ id: String(b.id), name: String(b.name || ''), icon: BOARD_ICONS.includes(b.icon) ? b.icon : 'checklist', customers: !!b.customers, active: b.active !== false }));
+  if (!out.boards.length) out.boards = defaultBoards();
+  if (!out.boards.some(b => b.active)) out.boards[0].active = true;
+  const ids = out.boards.map(b => b.id), firstId = (out.boards.find(b => b.active) || out.boards[0]).id;
+  const given = out.settings.sort || {}, s = {};
+  ids.forEach(a => { s[a] = { ...SORT_DEFAULT, ...(given[a] || {}) }; COLS.forEach(c => { if (!SORTS.includes(s[a][c])) s[a][c] = 'prio'; }); });
   out.settings.sort = s;
-  if (!AREAS.includes(out.settings.area)) out.settings.area = 'private';
+  const cur = out.boards.find(b => b.id === out.settings.area);
+  if (!cur || !cur.active) out.settings.area = firstId;
   const days = Number(out.settings.archiveDays);
   out.settings.archiveDays = Number.isFinite(days) && days >= 0 ? Math.round(days) : 14;
-  out.categories.forEach(c => { if (!AREAS.includes(c.area)) c.area = 'private'; c.color = String(c.color || PALETTE[0]).toUpperCase(); c.name = String(c.name || ''); });
+  out.categories.forEach(c => { if (!ids.includes(c.area)) c.area = ids[0]; c.color = String(c.color || PALETTE[0]).toUpperCase(); c.name = String(c.name || ''); });
   out.tasks.forEach(tk => {
     if (!COLS.includes(tk.status)) tk.status = 'open';
     tk.priority = [1, 2, 3].includes(Number(tk.priority)) ? Number(tk.priority) : 2;
     if (typeof tk.order !== 'number') tk.order = -(tk.created || 0);
-    if (!AREAS.includes(tk.area)) tk.area = 'private';
+    if (!ids.includes(tk.area)) tk.area = ids[0];
     if (tk.due == null) tk.due = '';
     if (tk.note == null) tk.note = '';
     tk.repeat = normalizeRepeat(tk.repeat);
@@ -789,6 +856,16 @@ function toast(msg) {
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.classList.remove('show'); setTimeout(() => { try { if (el.hidePopover && el.matches(':popover-open')) el.hidePopover(); } catch (e) { } }, 250); }, 2600);
 }
 const curArea = () => state.settings.area;
+const boardById = id => state.boards.find(b => b.id === id) || null;
+const activeBoards = () => state.boards.filter(b => b.active);
+const hasCust = id => { const b = boardById(id); return !!(b && b.customers); };
+function boardName(b) {
+  if (typeof b === 'string') b = boardById(b);
+  if (!b) return '–';
+  if (b.name) return b.name;
+  return (b.id === 'private' || b.id === 'business') ? t('area_' + b.id) : '–';
+}
+function sortOf(a) { if (!state.settings.sort[a]) state.settings.sort[a] = { ...SORT_DEFAULT }; return state.settings.sort[a]; }
 const catById = id => id ? state.categories.find(c => c.id === id) || null : null;
 const custById = id => id ? state.customers.find(c => c.id === id) || null : null;
 const catsOf = a => state.categories.filter(c => c.area === a).sort((x, y) => x.name.localeCompare(y.name, 'de'));
@@ -1045,11 +1122,14 @@ function applyAll() { applyTheme(); applyI18n(); renderBoard(); updateStatus(); 
 /* ---------- Bereich ---------- */
 let query = '', filterCat = '', filterCust = '';
 function setArea(a) {
-  if (!AREAS.includes(a) || a === curArea()) return;
+  if (!boardById(a) || a === curArea()) return;
   state.settings.area = a; filterCat = ''; filterCust = '';
   closeMenu(); renderBoard(); persist();
 }
-$('areabar').addEventListener('click', e => { const b = e.target.closest('button[data-area]'); if (b) setArea(b.dataset.area); });
+$('areabar').addEventListener('click', e => {
+  if (e.target.closest('[data-addboard]')) { openBoardDlg(null); return; }
+  const b = e.target.closest('button[data-area]'); if (b) setArea(b.dataset.area);
+});
 
 /* ---------- Board ---------- */
 function matches(tk, q) {
@@ -1116,12 +1196,11 @@ function cardHtml(tk) {
     + '</div>';
 }
 function renderAreabar() {
-  $('areabar').querySelectorAll('button').forEach(b => {
-    const a = b.dataset.area;
-    const n = state.tasks.filter(tk => !tk.archived && tk.area === a && tk.status !== 'done').length;
-    b.classList.toggle('on', a === curArea());
-    b.innerHTML = icon(a === 'private' ? 'checklist' : 'users', 16) + ' ' + esc(t('area_' + a)) + ' <span class="count">' + n + '</span>';
-  });
+  $('areabar').innerHTML = activeBoards().map(b => {
+    const n = state.tasks.filter(tk => !tk.archived && tk.area === b.id && tk.status !== 'done' && !isHidden(tk)).length;
+    return '<button type="button" data-area="' + esc(b.id) + '" class="' + (b.id === curArea() ? 'on' : '') + '">' + icon(b.icon, 16) + ' ' + esc(boardName(b)) + ' <span class="count">' + n + '</span></button>';
+  }).join('') + '<button type="button" class="add-board" data-addboard title="' + esc(t('boardNew')) + '" aria-label="' + esc(t('boardNew')) + '">' + icon('plus', 16) + '</button>';
+  const on = $('areabar').querySelector('button.on'); if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 function renderFilters() {
   const a = curArea();
@@ -1129,7 +1208,7 @@ function renderFilters() {
   if (filterCat && filterCat !== '-' && !cats.some(c => c.id === filterCat)) filterCat = '';
   $('filterCat').innerHTML = '<option value="">' + esc(t('allCats')) + '</option>' + cats.map(c => '<option value="' + c.id + '">' + esc(c.name) + '</option>').join('') + '<option value="-">' + esc(t('noCat')) + '</option>';
   $('filterCat').value = filterCat;
-  const isBiz = a === 'business';
+  const isBiz = hasCust(a);
   $('filterCust').classList.toggle('hidden', !isBiz);
   $('btnCustomers').classList.toggle('hidden', !isBiz);
   if (isBiz) {
@@ -1144,7 +1223,7 @@ function renderBoard() {
   renderAreabar(); renderFilters();
   const days = state.settings.archiveDays;
   $('board').innerHTML = COLS.map(col => {
-    const mode = state.settings.sort[a][col];
+    const mode = sortOf(a)[col];
     const list = sortTasks(colTasks(a, col, true), mode);
     const emptyTxt = col === 'done' ? (days > 0 ? t('empty_done', { n: days }) : t('empty_done_off')) : t('empty_' + col);
     const sel = '<select data-sort="' + col + '" title="' + esc(t('sortTitle')) + '" aria-label="' + esc(t('sortTitle')) + '">' + SORTS.map(s => '<option value="' + s + '"' + (s === mode ? ' selected' : '') + '>' + esc(t('sort_' + s)) + '</option>').join('') + '</select>';
@@ -1166,7 +1245,7 @@ $('filterCust').addEventListener('change', e => { filterCust = e.target.value; r
 
 $('board').addEventListener('change', e => {
   const s = e.target.closest('select[data-sort]'); if (!s) return;
-  state.settings.sort[curArea()][s.dataset.sort] = s.value;
+  sortOf(curArea())[s.dataset.sort] = s.value;
   renderBoard(); persist();
 });
 $('board').addEventListener('click', e => {
@@ -1231,10 +1310,10 @@ function moveTask(tk, target, beforeId, positional) {
   const a = tk.area;
   const same = tk.status === target;
   if (same && !positional) return;
-  let mode = state.settings.sort[a][target];
+  let mode = sortOf(a)[target];
   if (positional && same && mode !== 'manual') {
     sortTasks(colTasks(a, target, false), mode).forEach((x, i) => { x.order = i; });
-    state.settings.sort[a][target] = 'manual'; mode = 'manual';
+    sortOf(a)[target] = 'manual'; mode = 'manual';
     toast(t('switchedManual', { col: t('col_' + target) }));
   }
   tk.showFrom = '';
@@ -1457,12 +1536,12 @@ function openEditor(tk, status, preset) {
   closeMenu();
   edTask = tk || null;
   edArea = tk ? tk.area : (preset && preset.area) || curArea();
-  $('edHead').textContent = (tk ? t('editorEdit') : t('editorNew')) + ' · ' + t('area_' + edArea);
+  $('edHead').textContent = (tk ? t('editorEdit') : t('editorNew')) + ' · ' + boardName(edArea);
   const ts = tk ? tk.created : Date.now();
   $('edTime').textContent = t('createdOn', { date: fmtDate(ts), time: fmtTime(ts) });
   $('edTitle').value = tk ? tk.title || '' : '';
   const k = tk ? custById(tk.customerId) : preset && preset.customerId ? custById(preset.customerId) : null;
-  $('edCustBlock').classList.toggle('hidden', edArea !== 'business');
+  $('edCustBlock').classList.toggle('hidden', !hasCust(edArea));
   $('edCust').value = k ? k.name || '' : '';
   $('edPhone').value = k ? k.phone || '' : '';
   $('edEmail').value = k ? k.email || '' : '';
@@ -1490,7 +1569,7 @@ function saveEditor() {
   if (repeat === undefined) { showErr(t('errRepN')); $('edRepN').focus(); return; }
   const a = edArea;
   const catId = findOrCreateCategory(a, $('edCat').value, edColor);
-  const custId = a === 'business' ? findOrCreateCustomer($('edCust').value, $('edPhone').value.trim(), $('edEmail').value.trim(), $('edContact').value.trim()) : null;
+  const custId = hasCust(a) ? findOrCreateCustomer($('edCust').value, $('edPhone').value.trim(), $('edEmail').value.trim(), $('edContact').value.trim()) : null;
   const values = { title, priority: edPrio, categoryId: catId, customerId: custId, due: $('edDue').value || '', note: $('edNote').value.trim(), repeat };
   if (!edTask) {
     const now = Date.now();
@@ -1535,8 +1614,9 @@ function openArchive() {
   $('dlgArchive').showModal();
 }
 function renderArchive() {
-  $('archArea').innerHTML = AREAS.map(a => '<button type="button" data-a="' + a + '" class="' + (a === archArea ? 'on' : '') + '">' + esc(t('area_' + a)) + '</button>').join('');
-  const list = archivedList(), biz = archArea === 'business';
+  if (!boardById(archArea)) archArea = state.boards[0].id;
+  $('archArea').innerHTML = state.boards.map(b => '<button type="button" data-a="' + esc(b.id) + '" class="' + (b.id === archArea ? 'on' : '') + '">' + icon(b.icon, 15) + esc(boardName(b)) + '</button>').join('');
+  const list = archivedList(), biz = hasCust(archArea);
   const total = state.tasks.filter(tk => tk.archived && tk.area === archArea).length;
   if (!total) { $('archContent').innerHTML = '<p class="empty">' + esc(t('archEmpty')) + '</p>'; return; }
   if (!list.length) { $('archContent').innerHTML = '<p class="empty">' + esc(t('archNoHits')) + '</p>'; return; }
@@ -1573,12 +1653,70 @@ $('archCsv').onclick = () => {
   const head = [t('thArea'), t('thTitle'), t('thPrio'), t('thCategory'), t('thCustomer'), t('thContact'), t('thPhone'), t('thEmail'), t('thDue'), t('thCreated'), t('thDone'), t('thArchived'), t('thNote')];
   const rows = list.map(tk => {
     const c = catById(tk.categoryId), k = custById(tk.customerId);
-    return [t('area_' + tk.area), tk.title, tk.priority, c ? c.name : '', k ? k.name : '', k ? k.contact : '', k ? k.phone : '', k ? k.email : '', fmtIso(tk.due),
+    return [boardName(tk.area), tk.title, tk.priority, c ? c.name : '', k ? k.name : '', k ? k.contact : '', k ? k.phone : '', k ? k.email : '', fmtIso(tk.due),
       fmtDate(tk.created), tk.doneAt ? fmtDate(tk.doneAt) : '', tk.archivedAt ? fmtDate(tk.archivedAt) : '', tk.note];
   });
   const csv = '﻿' + [head, ...rows].map(r => r.map(csvCell).join(';')).join('\r\n');
-  download(new Blob([csv], { type: 'text/csv;charset=utf-8' }), t('csvFile') + '_' + archArea + '_' + isoDate(Date.now()) + '.csv');
+  download(new Blob([csv], { type: 'text/csv;charset=utf-8' }), t('csvFile') + '_' + (nameKey(boardName(archArea)) || 'board') + '_' + isoDate(Date.now()) + '.csv');
 };
+
+/* ---------- Boards ---------- */
+let bdEdit = null, bdIcon = 'checklist';
+function openBoardDlg(bd) {
+  closeMenu();
+  bdEdit = bd || null;
+  const used = new Set(state.boards.map(x => x.icon));
+  bdIcon = bd ? bd.icon : (BOARD_ICONS.find(i => !used.has(i)) || 'checklist');
+  $('bdName').value = bd ? bd.name : '';
+  $('bdName').placeholder = bd ? (boardName({ id: bd.id, name: '' }) === '–' ? t('boardNamePh') : boardName({ id: bd.id, name: '' })) : t('boardNamePh');
+  $('bdCust').checked = bd ? bd.customers : false;
+  $('bdErr').classList.add('hidden');
+  renderBoardDlg();
+  $('dlgBoard').showModal(); $('bdName').focus();
+}
+function renderBoardDlg() {
+  $('bdTitle').textContent = bdEdit ? t('boardEdit') : t('boardNew');
+  $('bdSave').textContent = bdEdit ? t('btnSave') : t('bdCreate');
+  $('bdIcons').innerHTML = BOARD_ICONS.map(i => '<button type="button" data-icon="' + i + '" class="' + (i === bdIcon ? 'on' : '') + '" aria-label="' + i + '">' + icon(i) + '</button>').join('');
+}
+$('bdIcons').addEventListener('click', e => { const b = e.target.closest('[data-icon]'); if (!b) return; bdIcon = b.dataset.icon; renderBoardDlg(); });
+$('bdName').addEventListener('input', () => $('bdErr').classList.add('hidden'));
+$('bdName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveBoardDlg(); } });
+function saveBoardDlg() {
+  const name = $('bdName').value.trim();
+  const isDefault = bdEdit && (bdEdit.id === 'private' || bdEdit.id === 'business');
+  if (!name && !isDefault) { $('bdErr').textContent = t('bdErrName'); $('bdErr').classList.remove('hidden'); $('bdName').focus(); return; }
+  if (bdEdit) { bdEdit.name = name; bdEdit.icon = bdIcon; bdEdit.customers = $('bdCust').checked; }
+  else {
+    const bd = { id: uid(), name, icon: bdIcon, customers: $('bdCust').checked, active: true };
+    state.boards.push(bd); sortOf(bd.id);
+    state.settings.area = bd.id; filterCat = ''; filterCust = '';
+    toast(t('boardCreated', { name }));
+  }
+  $('dlgBoard').close();
+  persist(); renderBoard();
+  if ($('dlgSettings').open) renderSettings();
+}
+$('bdSave').onclick = saveBoardDlg;
+function setBoardActive(bd, on) {
+  if (!on && activeBoards().filter(x => x.id !== bd.id).length === 0) { toast(t('boardLastActive')); renderSettings(); return; }
+  bd.active = on;
+  if (!on && curArea() === bd.id) { state.settings.area = activeBoards()[0].id; filterCat = ''; filterCust = ''; }
+  persist(); renderSettings(); renderBoard();
+}
+async function deleteBoard(bd) {
+  if (state.boards.length <= 1) { toast(t('boardLastOne')); return; }
+  const n = state.tasks.filter(tk => tk.area === bd.id).length, c = state.categories.filter(x => x.area === bd.id).length;
+  if (!await confirmDlg(t('boardDelTitle', { name: boardName(bd) }), t('boardDelText', { n, c }), true)) return;
+  state.tasks = state.tasks.filter(tk => tk.area !== bd.id);
+  state.categories = state.categories.filter(x => x.area !== bd.id);
+  state.boards = state.boards.filter(x => x.id !== bd.id);
+  delete state.settings.sort[bd.id];
+  if (!state.boards.some(x => x.active)) state.boards[0].active = true;
+  if (!boardById(curArea()) || !boardById(curArea()).active) { state.settings.area = activeBoards()[0].id; filterCat = ''; filterCust = ''; }
+  if (!boardById(setCatArea)) setCatArea = state.boards[0].id;
+  persist(); renderSettings(); renderBoard(); toast(t('boardDeleted'));
+}
 
 /* ---------- Kunden-Ansicht ---------- */
 let custView = null, custShowDone = false, custQuery = '';
@@ -1660,7 +1798,10 @@ $('custBody').addEventListener('keydown', e => {
   if (row || m) { e.preventDefault(); e.target.click(); }
 });
 $('custFoot').addEventListener('click', e => {
-  if (e.target.closest('[data-new]')) openEditor(null, null, { area: 'business', customerId: custView });
+  if (e.target.closest('[data-new]')) {
+    const tb = hasCust(curArea()) ? curArea() : ((activeBoards().find(b => b.customers) || state.boards.find(b => b.customers) || {}).id);
+    if (tb) openEditor(null, null, { area: tb, customerId: custView });
+  }
   else if (e.target.closest('[data-edit]')) openSettings('customers');
   else if (e.target.closest('[data-import]')) startImport();
   else if (e.target.closest('[data-close-c]')) $('dlgCustomer').close();
@@ -1686,10 +1827,18 @@ function renderSettings() {
   const s = state.settings;
   $('setTabs').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.tab === settingsTab));
   let html = '';
-  if (settingsTab === 'categories') {
+  if (settingsTab === 'boards') {
+    html = '<div class="set-sec"><h3>' + icon('checklist') + esc(t('tabBoards')) + '</h3><table class="list-table"><thead><tr><th style="width:60px">' + esc(t('thActive')) + '</th><th>' + esc(t('thBoard')) + '</th><th style="width:90px">' + esc(t('thCustomersShort')) + '</th><th style="width:90px">' + esc(t('thOrder')) + '</th><th style="width:80px"></th></tr></thead><tbody>'
+      + state.boards.map((bd, i) => '<tr class="board-row' + (bd.active ? '' : ' off') + '" data-bid="' + esc(bd.id) + '"><td><input type="checkbox" class="switch" data-b="active"' + (bd.active ? ' checked' : '') + ' aria-label="' + esc(t('thActive')) + '"></td>'
+        + '<td><div style="display:flex;gap:8px;align-items:center"><button class="ghost icon" data-b="edit" title="' + esc(t('boardEdit')) + '" aria-label="' + esc(t('boardEdit')) + '">' + icon(bd.icon) + '</button><input data-b="name" value="' + esc(bd.name) + '" placeholder="' + esc(boardName({ id: bd.id, name: '' }) === '–' ? t('boardNamePh') : boardName({ id: bd.id, name: '' })) + '">' + (bd.active ? '' : '<span class="hint" style="margin:0;white-space:nowrap">' + esc(t('boardHiddenTag')) + '</span>') + '</div></td>'
+        + '<td><input type="checkbox" class="switch" data-b="customers"' + (bd.customers ? ' checked' : '') + ' aria-label="' + esc(t('bdCustomers')) + '"></td>'
+        + '<td class="nowrap"><button class="ghost icon" data-b="up"' + (i === 0 ? ' disabled' : '') + ' title="' + esc(t('moveUp')) + '" aria-label="' + esc(t('moveUp')) + '">' + icon('up') + '</button><button class="ghost icon" data-b="down"' + (i === state.boards.length - 1 ? ' disabled' : '') + ' title="' + esc(t('moveDown')) + '" aria-label="' + esc(t('moveDown')) + '">' + icon('down') + '</button></td>'
+        + '<td class="nowrap"><button class="ghost icon" data-b="edit" title="' + esc(t('boardEdit')) + '" aria-label="' + esc(t('boardEdit')) + '">' + icon('edit') + '</button><button class="ghost icon" data-b="delete" title="' + esc(t('btnDelete')) + '" aria-label="' + esc(t('btnDelete')) + '">' + icon('trash') + '</button></td></tr>').join('')
+      + '</tbody></table><div class="btnrow"><button id="stAddBoard">' + icon('plus') + esc(t('boardAdd')) + '</button></div><p class="hint">' + esc(t('boardsHint')) + '</p></div>';
+  } else if (settingsTab === 'categories') {
     const cats = catsOf(setCatArea);
     html = '<div class="set-sec"><h3>' + icon('tag') + esc(t('tabCategories')) + '</h3><div class="seg small" id="stCatArea" style="margin-bottom:8px">'
-      + AREAS.map(a => '<button type="button" data-a="' + a + '" class="' + (a === setCatArea ? 'on' : '') + '">' + esc(t('area_' + a)) + '</button>').join('') + '</div>'
+      + state.boards.map(bd => '<button type="button" data-a="' + esc(bd.id) + '" class="' + (bd.id === setCatArea ? 'on' : '') + '">' + icon(bd.icon, 15) + esc(boardName(bd)) + '</button>').join('') + '</div>'
       + (cats.length ? '<table class="list-table"><thead><tr><th>' + esc(t('thName')) + '</th><th>' + esc(t('thColor')) + '</th><th>' + esc(t('thCount')) + '</th><th style="width:40px"></th></tr></thead><tbody>'
         + cats.map(c => '<tr data-cid="' + c.id + '"><td><input data-f="name" value="' + esc(c.name) + '"></td><td>' + swatchRow(c.color, c.id) + '</td><td>' + countTasksWith('categoryId', c.id) + '</td><td><button class="ghost icon" data-del-cat title="' + esc(t('btnDelete')) + '" aria-label="' + esc(t('btnDelete')) + '">' + icon('trash') + '</button></td></tr>').join('')
         + '</tbody></table>' : '<p class="hint">' + esc(t('catEmpty')) + '</p>')
@@ -1724,6 +1873,19 @@ function bindSettings() {
   const b = $('setBody');
   const on = (id, fn) => { if ($(id)) $(id).onclick = fn; };
   on('stNew', newFile); on('stOpen', openFile); on('stReconnect', reconnectFile); on('stExport', exportBackup);
+  on('stAddBoard', () => openBoardDlg(null));
+  b.querySelectorAll('tr[data-bid]').forEach(tr => {
+    const bd = boardById(tr.dataset.bid); if (!bd) return;
+    tr.querySelectorAll('[data-b]').forEach(el => {
+      const k = el.dataset.b;
+      if (k === 'name') el.addEventListener('input', () => { bd.name = el.value.trim(); persistSoon(); renderBoard(); });
+      else if (k === 'active') el.addEventListener('change', () => setBoardActive(bd, el.checked));
+      else if (k === 'customers') el.addEventListener('change', () => { bd.customers = el.checked; persist(); renderBoard(); });
+      else if (k === 'up' || k === 'down') el.onclick = () => { const i = state.boards.indexOf(bd), j = k === 'up' ? i - 1 : i + 1; if (j < 0 || j >= state.boards.length) return; state.boards.splice(i, 1); state.boards.splice(j, 0, bd); persist(); renderSettings(); renderBoard(); };
+      else if (k === 'edit') el.onclick = () => openBoardDlg(bd);
+      else if (k === 'delete') el.onclick = () => deleteBoard(bd);
+    });
+  });
   on('stImport', () => $('fileImport').click()); on('stCsv', startImport); on('stDupes', openDupes);
   if ($('stCustAll')) {
     $('stCustAll').onchange = e => { b.querySelectorAll('tr[data-kid] input[data-sel]').forEach(cb => { cb.checked = e.target.checked; const id = cb.closest('tr').dataset.kid; if (cb.checked) custSel.add(id); else custSel.delete(id); }); updateCustBulk(); };
@@ -2151,6 +2313,7 @@ $('btnLang').onclick = () => {
   if ($('dlgCustomer').open) renderCustomer();
   if ($('dlgImport').open && imp && imp.items) { $('impTitle').textContent = t('impTitle'); renderImport(); }
   if ($('dlgDupes').open) renderDupes();
+  if ($('dlgBoard').open) renderBoardDlg();
 };
 document.querySelectorAll('dialog [data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
 
@@ -2161,7 +2324,7 @@ document.addEventListener('keydown', e => {
   const mod = e.ctrlKey || e.metaKey;
   if (menuEl && e.key === 'Escape') { e.preventDefault(); closeMenu(); return; }
   if (e.altKey && !mod && e.code === 'KeyN' && !anyOpen) { e.preventDefault(); openEditor(null); return; }
-  if (e.altKey && !mod && e.code === 'KeyB' && !anyOpen) { e.preventDefault(); setArea(curArea() === 'private' ? 'business' : 'private'); return; }
+  if (e.altKey && !mod && e.code === 'KeyB' && !anyOpen) { e.preventDefault(); const ab = activeBoards(); if (ab.length > 1) { const i = ab.findIndex(x => x.id === curArea()); setArea(ab[(i + 1) % ab.length].id); } return; }
   if (editorOpen) {
     if (mod && e.key === 'Enter') { e.preventDefault(); saveEditor(); return; }
     if (e.altKey && !mod && ['Digit1', 'Digit2', 'Digit3', 'Numpad1', 'Numpad2', 'Numpad3'].includes(e.code)) {

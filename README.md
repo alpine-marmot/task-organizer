@@ -14,17 +14,17 @@ A kanban board for chores, tasks and to-dos – split into <b>Private</b> and <b
 No server, no account, no internet connection needed.
 </p>
 
-<p align="center"><b>Version 0.3.1 (beta)</b> · <a href="CHANGELOG.md">Changelog</a> · <a href="https://alpine-marmot.github.io/task-organizer/">Open the app</a></p>
+<p align="center"><b>Version 0.4.0 (beta)</b> · <a href="CHANGELOG.md">Changelog</a> · <a href="https://alpine-marmot.github.io/task-organizer/">Open the app</a></p>
 
 ![Task Organizer in dark mode](screenshots/dark.png)
 
 ## Features
 
-- **Two areas:** Private and Business, each with its own tasks and categories
+- **Boards:** Private and Business by default, plus your own boards (e.g. a club) via the **+** in the header – each with its own tasks and categories; switch boards on and off, rename, reorder or delete them
 - **Four columns:** Open → Planned → Waiting → Done
 - **Tasks** with priority 1–3, category, due date and note
 - **Categories with colours:** created automatically the first time you type them, then suggested; the colour shows as the card's edge
-- **Customers** (business area): created automatically, suggested while typing, with contact person, phone and email
+- **Customers** (boards with the customer field switched on): created automatically, suggested while typing, with contact person, phone and email
 - **Customer card:** clickable phone and email, all open tasks by column, done and archived tasks, "New task for …"
 - **Customer import** from CSV (Excel, Outlook …) or vCard (.vcf, Apple Contacts): columns are detected automatically and can be remapped, data is cleaned up (Swiss phone format, email, character set), preview with select/deselect and duplicate handling (merge, keep, replace)
 - **Manage customers:** select several with checkboxes and delete them together, find and merge duplicates
@@ -58,10 +58,27 @@ Open <https://alpine-marmot.github.io/task-organizer/> and set up a data file as
 | New task | "New task" button, `Alt+N`, the "+ Add task" tile in a column, or double-click an empty spot |
 | Edit task | Click the card |
 | Move task | Drag the card, or use the arrow icon ("Move to …") |
-| Switch area | Tabs at the top or `Alt+B` |
+| Switch board | Tabs at the top or `Alt+B` |
+| New board | **+** next to the boards or Settings › Boards |
 | Customer card | Click the blue customer chip on a card, or the "Customers" button |
 | Archive | "Archive" on a done card, "Archive all", or automatically |
 | Import customers | "Import" in the customer window or Settings › Customers |
+
+### Boards
+
+Besides *Private* and *Business* you can add as many boards as you like – click the **+** next to the boards, enter a name, pick an icon and decide whether tasks get a *Customer* field. The customer list is shared by all boards with the customer field.
+
+Under **Settings › Boards** you can:
+- **switch boards on and off** – a switched-off board disappears from the header, its tasks are kept (handy if you only need *Private*)
+- rename boards, change the icon and the customer field
+- change the order with the arrows
+- delete boards – after a confirmation, including their tasks and categories
+
+At least one board always stays on. `Alt+B` cycles through the active boards.
+
+![Settings › Boards](screenshots/boards-de.png)
+
+![New board](screenshots/new-board-de.png)
 
 ### Recurring tasks
 
@@ -96,7 +113,7 @@ Under *Settings › Customers* you can tick several customers and delete them to
 | `Alt+N` | New task |
 | `Ctrl+Enter` | Save (in the form) |
 | `Alt+1` / `2` / `3` | Priority (in the form) |
-| `Alt+B` | Switch area |
+| `Alt+B` | Switch board |
 | `Ctrl+F` | Search |
 | `Esc` | Close window or menu |
 

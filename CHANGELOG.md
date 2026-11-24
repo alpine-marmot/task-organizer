@@ -4,6 +4,16 @@
 
 All notable changes to Task Organizer. Versions follow [Semantic Versioning](https://semver.org/); 0.x versions are beta.
 
+## 0.4.0 – 2026-11-24
+
+### Added
+- Multiple boards: add your own boards next to Private and Business with the **+** in the header – name, icon and customer field
+- Settings › Boards: switch boards on/off (tasks are kept), rename, change icon and customer field, reorder, delete (with confirmation)
+
+### Changed
+- Categories, archive and `Alt+B` cover all boards; customer field, customer filter and "Customers" button only appear in boards with the customer field
+- Existing data is migrated automatically (Private without, Business with customer field)
+
 ## 0.3.1 – 2026-11-24
 
 ### Added
