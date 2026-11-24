@@ -14,7 +14,7 @@ Ein Kanban-Board für Arbeiten, Aufgaben und To-dos – getrennt in <b>Privat</b
 Ohne Server, ohne Konto, ohne Internetverbindung.
 </p>
 
-<p align="center"><b>Version 0.3.0 (Beta)</b> · <a href="CHANGELOG.de.md">Änderungen</a> · <a href="https://alpine-marmot.github.io/task-organizer/">App öffnen</a></p>
+<p align="center"><b>Version 0.3.1 (Beta)</b> · <a href="CHANGELOG.de.md">Änderungen</a> · <a href="https://alpine-marmot.github.io/task-organizer/">App öffnen</a></p>
 
 ![Task Organizer im hellen Design, Bereich Geschäftlich](screenshots/light.png)
 
@@ -31,7 +31,7 @@ Ohne Server, ohne Konto, ohne Internetverbindung.
 - **Wiederkehrende Aufgaben:** täglich, wöchentlich, alle 2 Wochen, monatlich, jährlich oder eigenes Intervall – ab Erledigt oder nach festem Plan
 - **Sortierung pro Spalte:** Priorität, Erfassungsdatum, Fälligkeit, Farbe oder manuell
 - **Drag & Drop** zwischen und innerhalb der Spalten, dazu ein Menü «Verschieben nach …» auf jeder Karte
-- **Doppelklick** auf eine leere Stelle in Offen, Geplant oder Warten öffnet eine neue Aufgabe in dieser Spalte
+- **Kachel «+ Aufgabe hinzufügen»** unter der letzten Karte in Offen, Geplant und Warten – oder Doppelklick auf eine leere Stelle – öffnet eine neue Aufgabe in dieser Spalte
 - **Archiv:** per Knopf oder automatisch nach 14 Tagen (einstellbar), durchsuchbar, wiederherstellbar, CSV-Export für Excel
 - **Speichern in eine Datei** nach Wahl (Chrome und Edge), dazu Sicherung exportieren und importieren als JSON
 - Helles und dunkles Design, Deutsch und Englisch, Tastenkürzel, Hilfe mit Ablauf-Diagramm
@@ -55,7 +55,7 @@ Ohne Server, ohne Konto, ohne Internetverbindung.
 
 | Was | Wie |
 |---|---|
-| Neue Aufgabe | Knopf «Neue Aufgabe», `Alt+N` oder Doppelklick auf eine leere Stelle in einer Spalte |
+| Neue Aufgabe | Knopf «Neue Aufgabe», `Alt+N`, Kachel «+ Aufgabe hinzufügen» in einer Spalte oder Doppelklick auf eine leere Stelle |
 | Aufgabe bearbeiten | Karte anklicken |
 | Aufgabe verschieben | Karte ziehen oder Pfeil-Symbol («Verschieben nach …») |
 | Bereich wechseln | Reiter oben oder `Alt+B` |

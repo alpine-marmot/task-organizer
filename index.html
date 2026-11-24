@@ -6,10 +6,12 @@
 <title>Task Organizer</title>
 <!--
   Task Organizer
-  Version 0.3.0 (Beta) · by alpine-marmot · 2026
+  Version 0.3.1 (Beta) · by alpine-marmot · 2026
   https://github.com/alpine-marmot/task-organizer · MIT-Lizenz
 
   CHANGELOG
+  0.3.1 – 24.11.2026
+    - Kachel «+ Aufgabe hinzufügen» unter der letzten Karte in Offen, Geplant und Warten (auch in leeren Spalten); ein Klick öffnet «Neue Aufgabe» mit dieser Spalte vorausgewählt
   0.3.0 – 19.11.2026
     - Kunden-Import mit Vorschau: Kontakte einzeln an- und abwählen (alle vorausgewählt), Felder direkt korrigieren
     - Spalten der CSV werden automatisch erkannt (z. B. Firma, Vorname, Nachname, Mobile) und lassen sich per Auswahl neu zuordnen; Ladebalken während der Umwandlung
@@ -119,6 +121,9 @@ header h1{font-size:18px;font-weight:600;margin:0 8px 0 0;display:flex;align-ite
 .col-body.over{background:var(--accent-bg);outline:2px dashed var(--accent)}
 .col-body.drop-end::after{content:"";display:block;height:3px;border-radius:2px;background:var(--accent)}
 .empty{font-size:13px;color:var(--faint);padding:14px 8px;text-align:center}
+.add-tile{width:100%;min-height:46px;justify-content:center;border:1.5px dashed var(--border-strong);background:transparent;color:var(--muted);font-size:13px;border-radius:8px}
+.add-tile:hover,.add-tile:focus-visible{border-color:var(--accent);color:var(--accent-text);background:var(--accent-bg)}
+.add-tile svg.i{width:16px;height:16px}
 
 .card{background:var(--surface);border:1px solid var(--border);border-left:5px solid var(--border-strong);border-radius:4px 8px 8px 4px;padding:8px 10px;cursor:grab;font-size:13px;position:relative}
 .card:hover{border-color:var(--border-strong)}
@@ -412,7 +417,7 @@ td .sub{font-size:12px;color:var(--muted);white-space:pre-wrap}
 <script>
 'use strict';
 const APP_NAME = 'Task Organizer';
-const APP_VERSION = '0.3.0';
+const APP_VERSION = '0.3.1';
 const APP_AUTHOR = 'alpine-marmot';
 const REPO_URL = 'https://github.com/alpine-marmot/task-organizer';
 const PROFILE_URL = 'https://github.com/alpine-marmot';
@@ -421,6 +426,7 @@ const LOGO_DARK = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC4AAAAwCAYAAAB
 const RELEASE_YEAR = '2026';
 const LS_KEY = 'to_state_v1';
 const CHANGELOG = [
+  { v: '0.3.1', d: '24.11.2026', de: 'Kachel «+ Aufgabe hinzufügen» unter der letzten Karte in Offen, Geplant und Warten; ein Klick öffnet «Neue Aufgabe» mit dieser Spalte vorausgewählt.', en: '“+ Add task” tile below the last card in Open, Planned and Waiting; one click opens “New task” with that column preselected.' },
   { v: '0.3.0', d: '19.11.2026', de: 'Kunden-Import mit Vorschau (an-/abwählen, Felder korrigieren), automatische Spaltenerkennung mit Zuordnung und Ladebalken, Bereinigung (Telefon im Schweizer Format, E-Mail, Zeichensatz), Umgang mit Doppelten (zusammenführen, behalten, ersetzen), vCard-Import, Mehrfachauswahl zum Löschen, «Doppelte finden», Import-Knopf im Kunden-Fenster, Telefonnummern vollständig sichtbar, Kurzmeldungen vor geöffneten Fenstern.', en: 'Customer import with preview (select/deselect, fix fields), automatic column detection with mapping and progress bar, clean-up (Swiss phone format, email, character set), duplicate handling (merge, keep, replace), vCard import, multi-select delete, “Find duplicates”, import button in the customer window, phone numbers shown in full, short messages shown above open windows.' },
   { v: '0.2.2', d: '19.11.2026', de: 'Veröffentlichung auf GitHub: Autor «alpine-marmot», Fusszeile mit Logo und Links zu Repository und Profil.', en: 'Published on GitHub: author “alpine-marmot”, footer with logo and links to the repository and profile.' },
   { v: '0.2.1', d: '18.11.2026', de: 'Doppelklick auf die leere Fläche der Spalten Offen, Geplant oder Warten öffnet «Neue Aufgabe» mit dieser Spalte vorausgewählt.', en: 'Double-clicking the empty area of the Open, Planned or Waiting column opens “New task” with that column preselected.' },
@@ -440,7 +446,7 @@ const I18N = {
     toggleTheme: 'Hell/Dunkel umschalten', language: 'Sprache',
     area_private: 'Privat', area_business: 'Geschäftlich',
     col_open: 'Offen', col_planned: 'Geplant', col_waiting: 'Warten', col_done: 'Erledigt',
-    empty_open: 'Neue Aufgabe mit Alt+N oder Doppelklick hier erfassen.', empty_planned: 'Aufgaben, die eingeplant sind. Doppelklick hier = neue Aufgabe.', empty_waiting: 'Aufgaben, die auf etwas warten – Rückmeldung, Lieferung, Termin. Doppelklick hier = neue Aufgabe.', dblHint: 'Doppelklick auf eine leere Stelle: neue Aufgabe in dieser Spalte',
+    empty_open: 'Neue Aufgabe mit Alt+N oder Doppelklick hier erfassen.', empty_planned: 'Aufgaben, die eingeplant sind. Doppelklick hier = neue Aufgabe.', empty_waiting: 'Aufgaben, die auf etwas warten – Rückmeldung, Lieferung, Termin. Doppelklick hier = neue Aufgabe.', dblHint: 'Doppelklick auf eine leere Stelle: neue Aufgabe in dieser Spalte', addTask: 'Aufgabe hinzufügen',
     empty_done: 'Erledigte Aufgaben. Sie werden nach {n} Tagen automatisch archiviert.', empty_done_off: 'Erledigte Aufgaben – bereit zum Archivieren.',
     archiveAll: 'Alle archivieren',
     sort_prio: 'Priorität', sort_created: 'Erfassungsdatum', sort_due: 'Fälligkeit', sort_color: 'Farbe', sort_manual: 'Manuell', sortTitle: 'Sortierung dieser Spalte',
@@ -491,7 +497,7 @@ const I18N = {
     hCustT: 'Kunden', hCust: 'Im geschäftlichen Bereich hat jede Aufgabe ein Feld «Kunde». Neue Kunden werden beim Speichern angelegt, bekannte vorgeschlagen. Ansprechperson, Telefon und E-Mail gehören zum Kunden: Ändern Sie sie in einer Aufgabe, gilt das für alle Aufgaben dieses Kunden. Ein Klick auf den blauen Kunden-Chip einer Karte oder der Knopf «Kunden» öffnet die Kundenkarte: Kontaktdaten zum Anklicken, alle offenen Aufgaben nach Spalte, erledigte und archivierte Aufgaben sowie «Neue Aufgabe für …». Die Kundenliste zum Bearbeiten finden Sie in den Einstellungen. Dort wählen Sie mit den Kästchen mehrere Kunden aus und löschen sie gemeinsam, finden doppelte Kunden und führen sie zusammen. Über «Importieren» holen Sie Kontakte aus einer CSV-Datei (z. B. Excel oder Outlook) oder einer vCard (.vcf, z. B. Apple Kontakte): Die Spalten werden automatisch erkannt und lassen sich neu zuordnen, Telefonnummern kommen ins Schweizer Format, und in der Vorschau wählen Sie, welche Kontakte übernommen werden und was mit bereits vorhandenen geschieht.',
     hPrioT: 'Priorität und Fälligkeit', hPrio: 'Priorität 1 ist am wichtigsten, 3 am wenigsten wichtig. Priorität 1 ist auf der Karte rot markiert. Überfällige Aufgaben sind rot, heute fällige gelb.',
     hSortT: 'Sortieren', hSort: 'Jede Spalte hat oben ein eigenes Menü: nach Priorität, Erfassungsdatum (neueste zuerst), Fälligkeit, Farbe (nach Kategorie) oder manuell.',
-    hDndT: 'Verschieben', hDnd: 'Ziehen Sie eine Karte mit der Maus in eine andere Spalte. Innerhalb einer Spalte bestimmen Sie so die Reihenfolge; ist die Spalte anders sortiert, wechselt sie dabei auf «Manuell». Ohne Ziehen geht es über das Pfeil-Symbol auf der Karte («Verschieben nach …») oder im Bearbeiten-Fenster unter «Spalte». Ein Klick auf die Karte öffnet sie zum Bearbeiten. Ein Doppelklick auf eine leere Stelle in den Spalten Offen, Geplant oder Warten öffnet «Neue Aufgabe» – die Spalte ist dabei schon vorausgewählt.',
+    hDndT: 'Verschieben', hDnd: 'Ziehen Sie eine Karte mit der Maus in eine andere Spalte. Innerhalb einer Spalte bestimmen Sie so die Reihenfolge; ist die Spalte anders sortiert, wechselt sie dabei auf «Manuell». Ohne Ziehen geht es über das Pfeil-Symbol auf der Karte («Verschieben nach …») oder im Bearbeiten-Fenster unter «Spalte». Ein Klick auf die Karte öffnet sie zum Bearbeiten. Unter der letzten Karte in Offen, Geplant und Warten steht die Kachel «+ Aufgabe hinzufügen»; ein Klick darauf oder ein Doppelklick auf eine leere Stelle öffnet «Neue Aufgabe» – die Spalte ist dabei schon vorausgewählt.',
     hArchT: 'Archiv', hArch: 'Im Archiv wählen Sie den Bereich, suchen nach Aufgaben, stellen sie wieder her oder löschen sie endgültig. Die Liste lässt sich als CSV für Excel exportieren.',
     hSaveT: 'Speichern', hSave: 'In den Einstellungen wird eine Datendatei angelegt oder geöffnet. Danach speichert die App jede Änderung automatisch in diese Datei – Privat und Geschäftlich zusammen. Nach einem Neustart des Browsers muss die Datei einmal mit «Wieder verbinden» freigegeben werden. Das funktioniert in Google Chrome und Microsoft Edge; in Safari bleiben die Daten nur im Browser, dann regelmässig eine Sicherung exportieren.',
     hPrivT: 'Datenschutz',
@@ -537,7 +543,7 @@ const I18N = {
     toggleTheme: 'Toggle light/dark', language: 'Language',
     area_private: 'Private', area_business: 'Business',
     col_open: 'Open', col_planned: 'Planned', col_waiting: 'Waiting', col_done: 'Done',
-    empty_open: 'Add a new task with Alt+N or double-click here.', empty_planned: 'Tasks you have scheduled. Double-click here for a new task.', empty_waiting: 'Tasks waiting on something – a reply, a delivery, an appointment. Double-click here for a new task.', dblHint: 'Double-click an empty spot: new task in this column',
+    empty_open: 'Add a new task with Alt+N or double-click here.', empty_planned: 'Tasks you have scheduled. Double-click here for a new task.', empty_waiting: 'Tasks waiting on something – a reply, a delivery, an appointment. Double-click here for a new task.', dblHint: 'Double-click an empty spot: new task in this column', addTask: 'Add task',
     empty_done: 'Finished tasks. They are archived automatically after {n} days.', empty_done_off: 'Finished tasks – ready to archive.',
     archiveAll: 'Archive all',
     sort_prio: 'Priority', sort_created: 'Date added', sort_due: 'Due date', sort_color: 'Colour', sort_manual: 'Manual', sortTitle: 'Sort this column',
@@ -588,7 +594,7 @@ const I18N = {
     hCustT: 'Customers', hCust: 'In the business area every task has a “Customer” field. New customers are created when you save, known ones are suggested. Contact person, phone and email belong to the customer: change them in one task and it applies to all of that customer’s tasks. Click the blue customer chip on a card or the “Customers” button to open the customer card: clickable contact details, all open tasks by column, done and archived tasks, and “New task for …”. The editable customer list is in Settings. There you can tick several customers and delete them together, and find and merge duplicates. “Import” brings in contacts from a CSV file (e.g. Excel or Outlook) or a vCard (.vcf, e.g. Apple Contacts): columns are detected automatically and can be remapped, Swiss phone numbers are formatted, and in the preview you choose which contacts to take over and what happens to existing ones.',
     hPrioT: 'Priority and due date', hPrio: 'Priority 1 is the most important, 3 the least. Priority 1 is marked red on the card. Overdue tasks are red, tasks due today yellow.',
     hSortT: 'Sorting', hSort: 'Each column has its own menu: by priority, date added (newest first), due date, colour (by category) or manual.',
-    hDndT: 'Moving cards', hDnd: 'Drag a card to another column. Within a column, dragging sets the order; if the column is sorted differently, it switches to “Manual”. Without dragging, use the arrow icon on the card (“Move to …”) or “Column” in the edit window. Click a card to edit it. Double-click an empty spot in the Open, Planned or Waiting column to open “New task” with that column preselected.',
+    hDndT: 'Moving cards', hDnd: 'Drag a card to another column. Within a column, dragging sets the order; if the column is sorted differently, it switches to “Manual”. Without dragging, use the arrow icon on the card (“Move to …”) or “Column” in the edit window. Click a card to edit it. Below the last card in Open, Planned and Waiting there’s a “+ Add task” tile; clicking it or double-clicking an empty spot opens “New task” with that column preselected.',
     hArchT: 'Archive', hArch: 'In the archive, pick the area, search tasks, restore them or delete them for good. Export the list as CSV for Excel.',
     hSaveT: 'Saving', hSave: 'Create or open a data file in settings. After that, every change is saved to it automatically – Private and Business together. After the browser restarts, allow the file once with “Reconnect”. This works in Google Chrome and Microsoft Edge; in Safari the data stays in the browser only, so export a backup regularly.',
     hPrivT: 'Data protection',
@@ -1150,7 +1156,8 @@ function renderBoard() {
     }
     const tools = (col === 'done' && list.length >= 2) ? '<div class="col-tools"><button data-archive-all>' + icon('archive', 15) + esc(t('archiveAll')) + '</button></div>' : '';
     return '<section class="col"' + (col !== 'done' ? ' data-newcol="' + col + '"' : '') + '><div class="col-head"><span class="col-dot" style="background:' + COL_COLORS[col] + '"></span><span>' + esc(t('col_' + col)) + '</span><span class="count">' + list.length + '</span>' + sel + '</div>'
-      + tools + '<div class="col-body" data-col="' + col + '">' + (list.length ? list.map(cardHtml).join('') : '<div class="empty">' + esc(emptyTxt) + '</div>') + '</div>' + upcoming + '</section>';
+      + tools + '<div class="col-body" data-col="' + col + '">' + (list.length ? list.map(cardHtml).join('') : '<div class="empty">' + esc(emptyTxt) + '</div>')
+      + (col !== 'done' ? '<button type="button" class="add-tile" data-addcol="' + col + '">' + icon('plus') + esc(t('addTask')) + '</button>' : '') + '</div>' + upcoming + '</section>';
   }).join('');
 }
 $('search').addEventListener('input', e => { query = e.target.value; renderBoard(); });
@@ -1164,6 +1171,8 @@ $('board').addEventListener('change', e => {
 });
 $('board').addEventListener('click', e => {
   if (e.target.closest('select')) return;
+  const addBtn = e.target.closest('[data-addcol]');
+  if (addBtn) { if (!$('dlgEditor').open) openEditor(null, addBtn.dataset.addcol); return; }
   if (e.target.closest('[data-upcoming]')) { showUpcoming = !showUpcoming; renderBoard(); return; }
   if (e.target.closest('[data-archive-all]')) {
     archiveTasks(colTasks(curArea(), 'done', true)); return;

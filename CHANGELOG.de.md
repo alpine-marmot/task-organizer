@@ -4,6 +4,11 @@ Deutsch · [English](CHANGELOG.md)
 
 Alle wichtigen Änderungen am Task Organizer. Die Versionen folgen [Semantic Versioning](https://semver.org/lang/de/); 0.x-Versionen sind Beta.
 
+## 0.3.1 – 24.11.2026
+
+### Neu
+- Kachel «+ Aufgabe hinzufügen» unter der letzten Karte in Offen, Geplant und Warten (auch in leeren Spalten); ein Klick öffnet «Neue Aufgabe» mit dieser Spalte vorausgewählt
+
 ## 0.3.0 – 19.11.2026
 
 ### Neu

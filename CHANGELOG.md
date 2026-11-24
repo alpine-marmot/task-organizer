@@ -4,6 +4,11 @@
 
 All notable changes to Task Organizer. Versions follow [Semantic Versioning](https://semver.org/); 0.x versions are beta.
 
+## 0.3.1 – 2026-11-24
+
+### Added
+- "+ Add task" tile below the last card in Open, Planned and Waiting (also in empty columns); one click opens "New task" with that column preselected
+
 ## 0.3.0 – 2026-11-19
 
 ### Added

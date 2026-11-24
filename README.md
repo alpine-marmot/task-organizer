@@ -14,7 +14,7 @@ A kanban board for chores, tasks and to-dos – split into <b>Private</b> and <b
 No server, no account, no internet connection needed.
 </p>
 
-<p align="center"><b>Version 0.3.0 (beta)</b> · <a href="CHANGELOG.md">Changelog</a> · <a href="https://alpine-marmot.github.io/task-organizer/">Open the app</a></p>
+<p align="center"><b>Version 0.3.1 (beta)</b> · <a href="CHANGELOG.md">Changelog</a> · <a href="https://alpine-marmot.github.io/task-organizer/">Open the app</a></p>
 
 ![Task Organizer in dark mode](screenshots/dark.png)
 
@@ -31,7 +31,7 @@ No server, no account, no internet connection needed.
 - **Recurring tasks:** daily, weekly, every 2 weeks, monthly, yearly or a custom interval – counted from completion or on a fixed schedule
 - **Sorting per column:** priority, date added, due date, colour or manual
 - **Drag and drop** between and within columns, plus a "Move to …" menu on every card
-- **Double-click** an empty spot in Open, Planned or Waiting to add a task to that column
+- **"+ Add task" tile** below the last card in Open, Planned and Waiting – or double-click an empty spot – to add a task to that column
 - **Archive:** with a button or automatically after 14 days (adjustable), searchable, restore, CSV export for Excel
 - **Saving to a file** of your choice (Chrome and Edge), plus backup export and import as JSON
 - Light and dark theme, German and English, keyboard shortcuts, help with a flow diagram
@@ -55,7 +55,7 @@ Open <https://alpine-marmot.github.io/task-organizer/> and set up a data file as
 
 | What | How |
 |---|---|
-| New task | "New task" button, `Alt+N`, or double-click an empty spot in a column |
+| New task | "New task" button, `Alt+N`, the "+ Add task" tile in a column, or double-click an empty spot |
 | Edit task | Click the card |
 | Move task | Drag the card, or use the arrow icon ("Move to …") |
 | Switch area | Tabs at the top or `Alt+B` |
